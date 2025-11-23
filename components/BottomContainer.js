@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
@@ -174,7 +174,7 @@ const ActionCard = ({ icon: Icon, label, onPress, animationProgress, containerSc
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <BlurView intensity={100} tint="light" style={styles.actionCardBlur}>
+      <BlurView intensity={100} tint="dark" style={styles.actionCardBlur}>
         <Animated.View style={iconStyle}>
           <Icon size={Sizes.actionCardIconSize} color={Colors.white} />
         </Animated.View>
@@ -183,6 +183,68 @@ const ActionCard = ({ icon: Icon, label, onPress, animationProgress, containerSc
         </Animated.Text>
       </BlurView>
     </TouchableOpacity>
+  );
+};
+
+// Interactive Line Component
+const InteractiveLine = ({ bottomHeightSharedValue }) => {
+  // Opacity for "Listening" text (shown between MIN_HEIGHT and DEFAULT_HEIGHT)
+  const listeningOpacity = useDerivedValue(() => {
+    'worklet';
+    if (!bottomHeightSharedValue) return 0;
+    const height = bottomHeightSharedValue.value;
+    if (height <= MIN_HEIGHT + 10 || height > DEFAULT_HEIGHT + 10) return 0;
+    const progress = (height - MIN_HEIGHT) / (DEFAULT_HEIGHT - MIN_HEIGHT);
+    return Math.min(1, Math.max(0, progress));
+  });
+  
+  // Opacity for "+2 more" text (shown between DEFAULT_HEIGHT and EXPANDED_HEIGHT)
+  const moreOpacity = useDerivedValue(() => {
+    'worklet';
+    if (!bottomHeightSharedValue) return 0;
+    const height = bottomHeightSharedValue.value;
+    if (height <= DEFAULT_HEIGHT + 10 || height > EXPANDED_HEIGHT + 10) return 0;
+    return 1;
+  });
+  
+  const listeningStyle = useAnimatedStyle(() => ({
+    opacity: listeningOpacity.value,
+  }));
+  
+  const moreStyle = useAnimatedStyle(() => ({
+    opacity: moreOpacity.value,
+  }));
+  
+  // Determine if line should be expanded (has text)
+  const isExpanded = useDerivedValue(() => {
+    'worklet';
+    if (!bottomHeightSharedValue) return false;
+    const height = bottomHeightSharedValue.value;
+    return height > MIN_HEIGHT + 10 && height <= EXPANDED_HEIGHT + 10;
+  });
+  
+  const lineStyle = useAnimatedStyle(() => {
+    'worklet';
+    const expanded = isExpanded.value;
+    return {
+      height: expanded ? Sizes.interactiveLineExpandedHeight : Sizes.interactiveLineMinHeight,
+      width: expanded ? 'auto' : Sizes.interactiveLineMinWidth,
+      paddingHorizontal: expanded ? Spacing.interactiveLinePaddingH : 0,
+      paddingVertical: expanded ? Spacing.interactiveLinePaddingV : 0,
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.interactiveLineContainer, lineStyle]}>
+      <BlurView intensity={80} tint="dark" style={styles.interactiveLine}>
+        <Animated.Text style={[styles.interactiveLineText, listeningStyle]}>
+          Listening
+        </Animated.Text>
+        <Animated.Text style={[styles.interactiveLineText, moreStyle]}>
+          +2 more
+        </Animated.Text>
+      </BlurView>
+    </Animated.View>
   );
 };
 
@@ -361,6 +423,9 @@ export default function BottomContainer({
 
   return (
     <View style={styles.container}>
+      {/* Interactive Line */}
+      <InteractiveLine bottomHeightSharedValue={bottomHeightSharedValue} />
+      
       {/* Content Section (Action Cards) */}
       <View style={styles.contentSection}>
         {/* Action Cards Grid - Always rendered for smooth animations */}
@@ -445,6 +510,27 @@ const TabBarItem = ({ icon: Icon, label, isActive, size, isExplore, isAssistant 
   <View style={styles.tabBarItem}>
     {isAssistant ? (
       <View style={styles.assistantIconContainer}>
+        {/* AI Glow Background Images */}
+        <Image 
+          source={require('../assets/png/Polygon 1.png')} 
+          style={[styles.aiGlow, styles.aiGlow1]} 
+          resizeMode="contain"
+        />
+        <Image 
+          source={require('../assets/png/Polygon 2.png')} 
+          style={[styles.aiGlow, styles.aiGlow2]} 
+          resizeMode="contain"
+        />
+        <Image 
+          source={require('../assets/png/Polygon 3.png')} 
+          style={[styles.aiGlow, styles.aiGlow3]} 
+          resizeMode="contain"
+        />
+        <Image 
+          source={require('../assets/png/Polygon 4.png')} 
+          style={[styles.aiGlow, styles.aiGlow4]} 
+          resizeMode="contain"
+        />
         <LinearGradient
           colors={[Colors.assistantBlue, Colors.assistantBlueMid + 'CC', Colors.assistantBlueEnd + '00']}
           style={styles.assistantGradient}
@@ -476,11 +562,31 @@ const styles = StyleSheet.create({
     flex: 1,
     width: SCREEN_WIDTH,
     justifyContent: 'space-between',
+    backgroundColor: Colors.black,
+  },
+  interactiveLineContainer: {
+    alignItems: 'center',
+    paddingTop: Spacing.containerPaddingTop,
+    paddingBottom: Spacing.sm,
+  },
+  interactiveLine: {
+    backgroundColor: Colors.white14,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: Sizes.interactiveLineMinHeight,
+    minWidth: Sizes.interactiveLineMinWidth,
+  },
+  interactiveLineText: {
+    fontSize: Typography.interactiveLine.fontSize,
+    fontWeight: Typography.interactiveLine.fontWeight,
+    lineHeight: Typography.interactiveLine.lineHeight,
+    color: Colors.white,
+    opacity: Typography.interactiveLine.opacity,
   },
   contentSection: {
     alignItems: 'center',
     gap: Spacing.containerGap,
-    paddingTop: Spacing.containerPaddingTop,
     flexShrink: 0,
   },
   actionsContainer: {
@@ -574,6 +680,32 @@ const styles = StyleSheet.create({
   tabBarLabelActive: {
     opacity: Typography.tabBarLabelActive.opacity,
     color: Colors.white,
+  },
+  // AI Glow Images
+  aiGlow: {
+    position: 'absolute',
+    width: Sizes.tabBarIconSize * 2,
+    height: Sizes.tabBarIconSize * 2,
+  },
+  aiGlow1: {
+    top: -Sizes.tabBarIconSize * 0.5,
+    left: -Sizes.tabBarIconSize * 0.5,
+    opacity: 0.6,
+  },
+  aiGlow2: {
+    top: -Sizes.tabBarIconSize * 0.3,
+    right: -Sizes.tabBarIconSize * 0.3,
+    opacity: 0.5,
+  },
+  aiGlow3: {
+    bottom: -Sizes.tabBarIconSize * 0.4,
+    left: -Sizes.tabBarIconSize * 0.2,
+    opacity: 0.4,
+  },
+  aiGlow4: {
+    bottom: -Sizes.tabBarIconSize * 0.3,
+    right: -Sizes.tabBarIconSize * 0.4,
+    opacity: 0.5,
   },
 });
 
