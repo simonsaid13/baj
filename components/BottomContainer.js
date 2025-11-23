@@ -52,7 +52,7 @@ const EXPLORE_MAX = 400;          // Explore max: 8 action cards (3 rows)
 
 // Input field dimensions
 const INPUT_FIELD_HEIGHT = 72;    // Height of input field container
-const INPUT_PADDING_ABOVE_KEYBOARD = 48; // Padding between input and keyboard (20 + 32px lower = 48px)
+const INPUT_PADDING_ABOVE_KEYBOARD = 8; // Minimal padding between input and keyboard
 
 // Animation thresholds for ActionCard content
 const TEXT_MIN_HEIGHT = 24;       // Height when text starts appearing
@@ -314,11 +314,13 @@ export default function BottomContainer({
         setKeyboardHeight(kbHeight);
         
         // Calculate new container height to position input field above keyboard
-        // Reduced by ~200px: Only keyboard + input field + minimal padding
-        // Tab bar is already positioned at bottom, so we just need enough space for input above keyboard
-        const newHeight = kbHeight + INPUT_FIELD_HEIGHT + INPUT_PADDING_ABOVE_KEYBOARD;
+        // Structure: [Input Field] [8px padding] [Keyboard space]
+        // Tab bar is hidden when keyboard is open, so we only need space for input field
         
-        console.log('Keyboard shown - New container height:', newHeight, 'Keyboard height:', kbHeight, 'Reduction: ~200px from previous');
+        // Container height = input field + padding + keyboard space
+        const newHeight = INPUT_FIELD_HEIGHT + INPUT_PADDING_ABOVE_KEYBOARD + kbHeight;
+        
+        console.log('Keyboard shown - Container height:', newHeight, 'Keyboard space:', kbHeight, 'Input field height:', INPUT_FIELD_HEIGHT, 'Padding:', INPUT_PADDING_ABOVE_KEYBOARD);
         
         // Animate container to new height
         if (bottomHeightSharedValue) {
@@ -752,7 +754,7 @@ export default function BottomContainer({
       {/* Content Section - Renders based on currentTab */}
       <View style={[styles.contentSection, { 
         paddingBottom: inputMode && keyboardHeight > 0 
-          ? keyboardHeight + INPUT_PADDING_ABOVE_KEYBOARD + Math.max(Spacing.containerPaddingBottom, insets.bottom + 8)
+          ? keyboardHeight + INPUT_PADDING_ABOVE_KEYBOARD
           : 78 + Math.max(Spacing.containerPaddingBottom, insets.bottom + 8) + Spacing.containerGap 
       }]}>
         {currentTab === 'Explore' && (
@@ -805,7 +807,11 @@ export default function BottomContainer({
           // Assistant Mode - Show 3 buttons or input field
           inputMode ? (
             // Input Field Mode
-            <Animated.View style={[styles.inputContainer, assistantContainerAnimatedStyle]}>
+            <Animated.View style={[
+              styles.inputContainer, 
+              assistantContainerAnimatedStyle,
+              { marginTop: 0 }
+            ]}>
               <View style={styles.inputWrapper}>
                 <TextInput
                   ref={inputRef}
@@ -861,41 +867,43 @@ export default function BottomContainer({
         )}
       </View>
 
-      {/* TabBar - Always at Bottom */}
-      <View style={[styles.tabBar, { paddingBottom: Math.max(Spacing.containerPaddingBottom, insets.bottom + 8) }]}>
-        <TabBarItem
-          icon={ScanIcon}
-          label="Scan"
-          isActive={currentTab === 'Scan'}
-          size={24}
-          onPress={() => handleTabPress('Scan')}
-        />
-        <TabBarItem
-          icon={UserIcon}
-          label="Services"
-          isActive={currentTab === 'Services'}
-          size={24}
-          onPress={() => handleTabPress('Services')}
-        />
-        <TabBarItem
-          icon={SquaresFourIcon}
-          label="Explore"
-          isActive={currentTab === 'Explore'}
-          size={24}
-          isExplore
-          onPress={() => handleTabPress('Explore')}
-        />
-        <TabBarItem
-          icon={AssistantIcon}
-          label="Assistant"
-          isActive={currentTab === 'Assistant'}
-          size={24}
-          isAssistant
-          assistantRotation={assistantRotation}
-          assistantScale={assistantScale}
-          onPress={() => handleTabPress('Assistant')}
-        />
-      </View>
+      {/* TabBar - Hidden when keyboard is open */}
+      {!(inputMode && keyboardHeight > 0) && (
+        <View style={[styles.tabBar, { paddingBottom: Math.max(Spacing.containerPaddingBottom, insets.bottom + 8) }]}>
+          <TabBarItem
+            icon={ScanIcon}
+            label="Scan"
+            isActive={currentTab === 'Scan'}
+            size={24}
+            onPress={() => handleTabPress('Scan')}
+          />
+          <TabBarItem
+            icon={UserIcon}
+            label="Services"
+            isActive={currentTab === 'Services'}
+            size={24}
+            onPress={() => handleTabPress('Services')}
+          />
+          <TabBarItem
+            icon={SquaresFourIcon}
+            label="Explore"
+            isActive={currentTab === 'Explore'}
+            size={24}
+            isExplore
+            onPress={() => handleTabPress('Explore')}
+          />
+          <TabBarItem
+            icon={AssistantIcon}
+            label="Assistant"
+            isActive={currentTab === 'Assistant'}
+            size={24}
+            isAssistant
+            assistantRotation={assistantRotation}
+            assistantScale={assistantScale}
+            onPress={() => handleTabPress('Assistant')}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -1128,6 +1136,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: Sizes.actionsContainerWidth, // 361px
+    marginBottom: 0, // Will be set dynamically when keyboard is open
   },
   inputWrapper: {
     flexDirection: 'row',
