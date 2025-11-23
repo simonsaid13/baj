@@ -29,6 +29,18 @@
     "plugins": [
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "255913ce-d7ac-4f3b-abd9-60615c872f94"
+      }
+    },
+    "owner": "simonsaid",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/255913ce-d7ac-4f3b-abd9-60615c872f94"
+    }
   }
 }
