@@ -1,8 +1,28 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Dimensions, 
+  Image, 
+  TextInput, 
+  Keyboard,
+  Platform 
+} from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import Animated, { 
+  useAnimatedStyle, 
+  useDerivedValue, 
+  useSharedValue, 
+  withTiming, 
+  withRepeat,
+  Easing,
+  runOnJS
+} from 'react-native-reanimated';
 import {
   ScanIcon,
   UserIcon,
@@ -16,16 +36,23 @@ import {
   CarIcon,
   StorefrontIcon,
   FirstAidIcon,
+  VideoCameraIcon,
+  MicrophoneIcon,
+  KeyboardIcon,
 } from './icons';
 import { Colors, Typography, Spacing, BorderRadius, Sizes } from '../constants/tokens';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Height constants to match Figma designs
-const MIN_HEIGHT = 120;           // Minimized: just tab bar + interactive line
-const DEFAULT_HEIGHT = 140;       // With "Listening" text
-const EXPANDED_HEIGHT = 320;      // With 6 action cards (2 rows)
-const FULLY_EXPANDED_HEIGHT = 420; // With 8 action cards (3 rows)
+const EXPLORE_DEFAULT = 140;      // Explore collapsed: just tab bar + interactive line
+const ASSISTANT_HEIGHT = 220;     // Assistant mode: 3 action buttons in 1 row
+const EXPLORE_MIN = 320;          // Explore min: 6 action cards (2 rows) + "+2 more" text
+const EXPLORE_MAX = 400;          // Explore max: 8 action cards (3 rows)
+
+// Input field dimensions
+const INPUT_FIELD_HEIGHT = 72;    // Height of input field container
+const INPUT_PADDING_ABOVE_KEYBOARD = 48; // Padding between input and keyboard (20 + 32px lower = 48px)
 
 // Animation thresholds for ActionCard content
 const TEXT_MIN_HEIGHT = 24;       // Height when text starts appearing
@@ -39,6 +66,11 @@ const easeInOut = (t) => {
 };
 
 const ActionCard = ({ icon: Icon, label, onPress, animationProgress, containerScaleY }) => {
+  // Handle press with haptic feedback
+  const handlePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (onPress) onPress();
+  };
   // Animated style for text - appears early when card is small
   const textStyle = useAnimatedStyle(() => {
     'worklet';
@@ -171,89 +203,277 @@ const ActionCard = ({ icon: Icon, label, onPress, animationProgress, containerSc
   return (
     <TouchableOpacity
       style={styles.actionCard}
-      onPress={onPress}
+      onPress={handlePress}
       activeOpacity={0.7}
     >
-      <BlurView intensity={100} tint="dark" style={styles.actionCardBlur}>
+      <View style={styles.actionCardBlur}>
         <Animated.View style={iconStyle}>
           <Icon size={Sizes.actionCardIconSize} color={Colors.white} />
         </Animated.View>
         <Animated.Text style={[styles.actionCardLabel, textStyle]}>
           {label}
         </Animated.Text>
-      </BlurView>
+      </View>
     </TouchableOpacity>
   );
 };
 
-// Interactive Line Component
-const InteractiveLine = ({ bottomHeightSharedValue }) => {
-  // Opacity for "Listening" text (shown between MIN_HEIGHT and DEFAULT_HEIGHT)
-  const listeningOpacity = useDerivedValue(() => {
-    'worklet';
-    if (!bottomHeightSharedValue) return 0;
-    const height = bottomHeightSharedValue.value;
-    if (height <= MIN_HEIGHT + 10 || height > DEFAULT_HEIGHT + 10) return 0;
-    const progress = (height - MIN_HEIGHT) / (DEFAULT_HEIGHT - MIN_HEIGHT);
-    return Math.min(1, Math.max(0, progress));
-  });
-  
-  // Opacity for "+2 more" text (shown between DEFAULT_HEIGHT and EXPANDED_HEIGHT)
-  const moreOpacity = useDerivedValue(() => {
-    'worklet';
-    if (!bottomHeightSharedValue) return 0;
-    const height = bottomHeightSharedValue.value;
-    if (height <= DEFAULT_HEIGHT + 10 || height > EXPANDED_HEIGHT + 10) return 0;
-    return 1;
-  });
-  
-  const listeningStyle = useAnimatedStyle(() => ({
-    opacity: listeningOpacity.value,
-  }));
-  
-  const moreStyle = useAnimatedStyle(() => ({
-    opacity: moreOpacity.value,
-  }));
-  
-  // Determine if line should be expanded (has text)
-  const isExpanded = useDerivedValue(() => {
-    'worklet';
-    if (!bottomHeightSharedValue) return false;
-    const height = bottomHeightSharedValue.value;
-    return height > MIN_HEIGHT + 10 && height <= EXPANDED_HEIGHT + 10;
-  });
-  
-  const lineStyle = useAnimatedStyle(() => {
-    'worklet';
-    const expanded = isExpanded.value;
-    return {
-      height: expanded ? Sizes.interactiveLineExpandedHeight : Sizes.interactiveLineMinHeight,
-      width: expanded ? 'auto' : Sizes.interactiveLineMinWidth,
-      paddingHorizontal: expanded ? Spacing.interactiveLinePaddingH : 0,
-      paddingVertical: expanded ? Spacing.interactiveLinePaddingV : 0,
-    };
-  });
-
-  return (
-    <Animated.View style={[styles.interactiveLineContainer, lineStyle]}>
-      <BlurView intensity={80} tint="dark" style={styles.interactiveLine}>
-        <Animated.Text style={[styles.interactiveLineText, listeningStyle]}>
-          Listening
-        </Animated.Text>
-        <Animated.Text style={[styles.interactiveLineText, moreStyle]}>
-          +2 more
-        </Animated.Text>
-      </BlurView>
-    </Animated.View>
-  );
-};
-
 export default function BottomContainer({ 
-  bottomHeight: propBottomHeight = DEFAULT_HEIGHT, 
+  bottomHeight: propBottomHeight = EXPLORE_DEFAULT, 
   bottomHeightSharedValue,
-  activeTab = 'Explore' 
+  activeTab = 'Explore',
+  onHeightChange, // Callback to notify parent of height changes
+  onTabChange // Callback when user switches tabs
 }) {
   const currentBottomHeight = propBottomHeight;
+  const insets = useSafeAreaInsets();
+  
+  // State management - track which tab is currently active
+  const [currentTab, setCurrentTab] = useState(activeTab);
+  const [inputMode, setInputMode] = useState(false);
+  const [inputText, setInputText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const inputRef = useRef(null);
+  
+  // Animation for assistant buttons appearance
+  const assistantButtonsScale = useSharedValue(currentTab === 'Assistant' ? 1 : 0);
+
+  // Animated style for assistant containers (must be at top level, not conditional)
+  const assistantContainerAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: assistantButtonsScale.value }],
+    opacity: assistantButtonsScale.value,
+  }));
+
+  // Sync with parent's activeTab prop
+  useEffect(() => {
+    setCurrentTab(activeTab);
+  }, [activeTab]);
+
+  // Handle height changes when switching tabs
+  useEffect(() => {
+    if (currentTab === 'Assistant') {
+      // Animate assistant buttons scale
+      assistantButtonsScale.value = withTiming(1, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease),
+      });
+      
+      // Switch to Assistant height
+      if (bottomHeightSharedValue) {
+        bottomHeightSharedValue.value = withTiming(ASSISTANT_HEIGHT, {
+          duration: 300,
+          easing: Easing.inOut(Easing.ease),
+        });
+      }
+      if (onHeightChange) {
+        onHeightChange(ASSISTANT_HEIGHT);
+      }
+    } else if (currentTab === 'Explore') {
+      // Hide assistant buttons
+      assistantButtonsScale.value = withTiming(0, {
+        duration: 200,
+        easing: Easing.inOut(Easing.ease),
+      });
+      
+      // Switch back to Explore default (collapsed) height
+      if (bottomHeightSharedValue) {
+        bottomHeightSharedValue.value = withTiming(EXPLORE_DEFAULT, {
+          duration: 300,
+          easing: Easing.inOut(Easing.ease),
+        });
+      }
+      if (onHeightChange) {
+        onHeightChange(EXPLORE_DEFAULT);
+      }
+    } else {
+      // Hide assistant buttons
+      assistantButtonsScale.value = withTiming(0, {
+        duration: 200,
+        easing: Easing.inOut(Easing.ease),
+      });
+      
+      // Other tabs (Scan, Services) - default collapsed height
+      if (bottomHeightSharedValue) {
+        bottomHeightSharedValue.value = withTiming(EXPLORE_DEFAULT, {
+          duration: 300,
+          easing: Easing.inOut(Easing.ease),
+        });
+      }
+      if (onHeightChange) {
+        onHeightChange(EXPLORE_DEFAULT);
+      }
+    }
+  }, [currentTab, bottomHeightSharedValue, onHeightChange, assistantButtonsScale]);
+
+  // Listen to keyboard events and adjust container height
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        const kbHeight = e.endCoordinates.height;
+        setKeyboardHeight(kbHeight);
+        
+        // Calculate new container height to position input field above keyboard
+        // Reduced by ~200px: Only keyboard + input field + minimal padding
+        // Tab bar is already positioned at bottom, so we just need enough space for input above keyboard
+        const newHeight = kbHeight + INPUT_FIELD_HEIGHT + INPUT_PADDING_ABOVE_KEYBOARD;
+        
+        console.log('Keyboard shown - New container height:', newHeight, 'Keyboard height:', kbHeight, 'Reduction: ~200px from previous');
+        
+        // Animate container to new height
+        if (bottomHeightSharedValue) {
+          bottomHeightSharedValue.value = withTiming(newHeight, {
+            duration: Platform.OS === 'ios' ? 250 : 200,
+            easing: Easing.out(Easing.ease),
+          });
+        }
+        
+        // Notify parent to adjust ResizableSplitView
+        if (onHeightChange) {
+          onHeightChange(newHeight);
+        }
+      }
+    );
+    
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+        
+        console.log('Keyboard hidden - Returning to Assistant height:', ASSISTANT_HEIGHT);
+        
+        // Animate back to Assistant height
+        if (bottomHeightSharedValue) {
+          bottomHeightSharedValue.value = withTiming(ASSISTANT_HEIGHT, {
+            duration: Platform.OS === 'ios' ? 250 : 200,
+            easing: Easing.inOut(Easing.ease),
+          });
+        }
+        
+        // Notify parent
+        if (onHeightChange) {
+          onHeightChange(ASSISTANT_HEIGHT);
+        }
+        
+        // Go back to assistant buttons when keyboard is dismissed
+        if (inputMode) {
+          setTimeout(() => {
+            setInputMode(false);
+          }, 100);
+        }
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, [inputMode, bottomHeightSharedValue, onHeightChange]);
+
+  // Shared values for AIGlow polygon opacity animations (0% to 100% - FULL RANGE!)
+  // Each polygon animates independently with its own timing - start at different opacities
+  const polygon1Opacity = useSharedValue(0.2);
+  const polygon2Opacity = useSharedValue(0.5);
+  const polygon3Opacity = useSharedValue(0.8);
+  const polygon4Opacity = useSharedValue(0);
+
+  // Assistant tab animated multi-color gradient (seamless color transitions)
+  const assistantRotation = useSharedValue(0);
+  const assistantScale = useSharedValue(1);
+
+  // Start continuous opacity animations for each polygon using withRepeat - 4X SLOWER THAN ORIGINAL
+  // Animates from current value to opposite extreme (0 or 1)
+  useEffect(() => {
+    // Polygon 1: Pulse from 0 to 1 and back (1000ms each way - 2x slower)
+    polygon1Opacity.value = 0;
+    polygon1Opacity.value = withRepeat(
+      withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      -1, // infinite
+      true // reverse - goes back to 0
+    );
+
+    // Polygon 2: Different timing (1400ms - 2x slower)
+    polygon2Opacity.value = 0;
+    polygon2Opacity.value = withRepeat(
+      withTiming(1, { duration: 1400, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+
+    // Polygon 3: Different timing (1800ms - 2x slower)
+    polygon3Opacity.value = 0;
+    polygon3Opacity.value = withRepeat(
+      withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+
+    // Polygon 4: Different timing (2200ms - 2x slower)
+    polygon4Opacity.value = 0;
+    polygon4Opacity.value = withRepeat(
+      withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+    
+    // Assistant tab: Continuous rotation animation (smooth 360° spin)
+    assistantRotation.value = withRepeat(
+      withTiming(360, { duration: 4000, easing: Easing.linear }),
+      -1,
+      false // continuous rotation, no reverse
+    );
+
+    // Assistant tab: Subtle scale pulsing (breathing effect)
+    assistantScale.value = withRepeat(
+      withTiming(1.08, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true // reverse for breathing
+    );
+    
+    console.log('AIGlow animations started - smooth 0% to 100% fade');
+    console.log('Assistant tab animations started - rotating multi-color gradient contained in 56x56');
+  }, []);
+
+  // Handle tab press - generic handler for all tabs
+  const handleTabPress = (tabName) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // If clicking the same tab, do nothing (or could toggle)
+    if (currentTab === tabName) {
+      return;
+    }
+    
+    // Switch to new tab
+    setCurrentTab(tabName);
+    setInputMode(false);
+    
+    // Notify parent
+    if (onTabChange) {
+      onTabChange(tabName);
+    }
+  };
+
+  // Handle Type button press - show input field
+  const handleTypePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setInputMode(true);
+    // Focus input after state update
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+  };
+
+  // Handle input submission
+  const handleSubmitInput = () => {
+    if (inputText.trim()) {
+      console.log('Submitted text:', inputText);
+      // Here you would handle the actual submission
+      setInputText('');
+      Keyboard.dismiss();
+    }
+  };
 
   // Action cards to show
   const allActions = [
@@ -267,6 +487,13 @@ export default function BottomContainer({
     { icon: FirstAidIcon, label: 'Bajaj Health' },
   ];
 
+  // Assistant mode actions
+  const assistantActions = [
+    { icon: VideoCameraIcon, label: 'Video Chat' },
+    { icon: MicrophoneIcon, label: 'Speak' },
+    { icon: KeyboardIcon, label: 'Type', onPress: handleTypePress },
+  ];
+
   // Calculate animation progress for first 2 rows using derived value
   const firstTwoRowsProgress = useDerivedValue(() => {
     'worklet';
@@ -276,7 +503,7 @@ export default function BottomContainer({
     
     const height = bottomHeightSharedValue.value;
     return Math.max(0, Math.min(1, 
-      (height - DEFAULT_HEIGHT) / (EXPANDED_HEIGHT - DEFAULT_HEIGHT)
+      (height - EXPLORE_DEFAULT) / (EXPLORE_MIN - EXPLORE_DEFAULT)
     ));
   });
 
@@ -289,7 +516,7 @@ export default function BottomContainer({
     
     const height = bottomHeightSharedValue.value;
     return Math.max(0, Math.min(1, 
-      (height - DEFAULT_HEIGHT) / (EXPANDED_HEIGHT - DEFAULT_HEIGHT)
+      (height - EXPLORE_DEFAULT) / (EXPLORE_MIN - EXPLORE_DEFAULT)
     ));
   });
 
@@ -307,10 +534,10 @@ export default function BottomContainer({
       };
     }
     
-    // First 2 rows appear between DEFAULT_HEIGHT (140) and EXPANDED_HEIGHT (320)
+    // First 2 rows appear between EXPLORE_DEFAULT and EXPLORE_MIN
     const height = bottomHeightSharedValue.value;
     const progress = Math.max(0, Math.min(1, 
-      (height - DEFAULT_HEIGHT) / (EXPANDED_HEIGHT - DEFAULT_HEIGHT)
+      (height - EXPLORE_DEFAULT) / (EXPLORE_MIN - EXPLORE_DEFAULT)
     ));
     
     const rowHeight = Sizes.actionCardHeight + Spacing.actionCardGap;
@@ -334,7 +561,7 @@ export default function BottomContainer({
     
     const height = bottomHeightSharedValue.value;
     return Math.max(0, Math.min(1, 
-      (height - EXPANDED_HEIGHT) / (FULLY_EXPANDED_HEIGHT - EXPANDED_HEIGHT)
+      (height - EXPLORE_MIN) / (EXPLORE_MAX - EXPLORE_MIN)
     ));
   });
 
@@ -347,7 +574,7 @@ export default function BottomContainer({
     
     const height = bottomHeightSharedValue.value;
     return Math.max(0, Math.min(1, 
-      (height - EXPANDED_HEIGHT) / (FULLY_EXPANDED_HEIGHT - EXPANDED_HEIGHT)
+      (height - EXPLORE_MIN) / (EXPLORE_MAX - EXPLORE_MIN)
     ));
   });
 
@@ -365,10 +592,10 @@ export default function BottomContainer({
       };
     }
     
-    // Third row appears between EXPANDED_HEIGHT (320) and FULLY_EXPANDED_HEIGHT (420)
+    // Third row appears between EXPLORE_MIN and EXPLORE_MAX
     const height = bottomHeightSharedValue.value;
     const progress = Math.max(0, Math.min(1, 
-      (height - EXPANDED_HEIGHT) / (FULLY_EXPANDED_HEIGHT - EXPANDED_HEIGHT)
+      (height - EXPLORE_MIN) / (EXPLORE_MAX - EXPLORE_MIN)
     ));
     
     const rowHeight = Sizes.actionCardHeight;
@@ -398,17 +625,17 @@ export default function BottomContainer({
     // Calculate total height based on state
     let totalHeight = 0;
     
-    if (height <= DEFAULT_HEIGHT) {
+    if (height <= EXPLORE_DEFAULT) {
       // Collapsed: 0px
       totalHeight = 0;
-    } else if (height > DEFAULT_HEIGHT && height <= EXPANDED_HEIGHT) {
+    } else if (height > EXPLORE_DEFAULT && height <= EXPLORE_MIN) {
       // Expanding to 2 rows: 0 → 152px
-      const progress = (height - DEFAULT_HEIGHT) / (EXPANDED_HEIGHT - DEFAULT_HEIGHT);
+      const progress = (height - EXPLORE_DEFAULT) / (EXPLORE_MIN - EXPLORE_DEFAULT);
       totalHeight = (rowHeight * 2) * progress;
-    } else if (height > EXPANDED_HEIGHT && height <= FULLY_EXPANDED_HEIGHT) {
+    } else if (height > EXPLORE_MIN && height <= EXPLORE_MAX) {
       // Expanding to 3 rows: 152px → 232px
       const twoRowsHeight = rowHeight * 2;
-      const thirdRowProgress = (height - EXPANDED_HEIGHT) / (FULLY_EXPANDED_HEIGHT - EXPANDED_HEIGHT);
+      const thirdRowProgress = (height - EXPLORE_MIN) / (EXPLORE_MAX - EXPLORE_MIN);
       totalHeight = twoRowsHeight + (Sizes.actionCardHeight + Spacing.actionCardGap) * thirdRowProgress;
     } else {
       // Fully expanded: 232px
@@ -421,173 +648,377 @@ export default function BottomContainer({
     };
   });
 
+  // Animated style for AIGlow container - keeps it fixed at screen position
+  // When container is at EXPLORE_DEFAULT, AIGlow is at top: -60 (moved 40px up from -20)
+  // As container expands, we adjust top to keep AIGlow at same screen position
+  const aiGlowContainerStyle = useAnimatedStyle(() => {
+    'worklet';
+    if (!bottomHeightSharedValue) {
+      return {
+        top: -60, // Default position (40px higher than before)
+      };
+    }
+    
+    try {
+      const currentHeight = bottomHeightSharedValue.value ?? EXPLORE_DEFAULT;
+      // Calculate offset: when height increases, container top moves up
+      // So we need to move AIGlow down by the same amount to keep it fixed
+      const heightDelta = currentHeight - EXPLORE_DEFAULT;
+      const topPosition = -60 + heightDelta; // Starting 40px higher
+      
+      return {
+        top: topPosition,
+      };
+    } catch (error) {
+      // Fallback to default position if there's an error
+      return {
+        top: -60,
+      };
+    }
+  });
+
+  // Calculate scale based on container height for AIGlow polygons
+  // Scale from 1.0 (EXPLORE_DEFAULT) to 1.6 (EXPLORE_MAX)
+  const aiGlowScale = useDerivedValue(() => {
+    'worklet';
+    if (!bottomHeightSharedValue) {
+      return 1.0;
+    }
+    
+    const currentHeight = bottomHeightSharedValue.value ?? EXPLORE_DEFAULT;
+    const heightRange = EXPLORE_MAX - EXPLORE_DEFAULT;
+    const heightProgress = Math.max(0, Math.min(1, (currentHeight - EXPLORE_DEFAULT) / heightRange));
+    
+    // Scale from 1.0 to 1.6 based on height progress - MORE INTENSE SCALE!
+    const scale = 1.0 + (heightProgress * 0.6);
+    return scale;
+  });
+
+  // Animated styles for AIGlow polygons - combine opacity and scale
+  const polygon1Style = useAnimatedStyle(() => ({
+    opacity: polygon1Opacity.value,
+    transform: [{ scale: aiGlowScale.value }],
+  }));
+
+  const polygon2Style = useAnimatedStyle(() => ({
+    opacity: polygon2Opacity.value,
+    transform: [{ scale: aiGlowScale.value }],
+  }));
+
+  const polygon3Style = useAnimatedStyle(() => ({
+    opacity: polygon3Opacity.value,
+    transform: [{ scale: aiGlowScale.value }],
+  }));
+
+  const polygon4Style = useAnimatedStyle(() => ({
+    opacity: polygon4Opacity.value,
+    transform: [{ scale: aiGlowScale.value }],
+  }));
+
   return (
     <View style={styles.container}>
-      {/* Interactive Line */}
-      <InteractiveLine bottomHeightSharedValue={bottomHeightSharedValue} />
-      
-      {/* Content Section (Action Cards) */}
-      <View style={styles.contentSection}>
-        {/* Action Cards Grid - Always rendered for smooth animations */}
-        <Animated.View style={[styles.actionsContainer, actionsContainerStyle]}>
-          {/* First 2 rows - animate together */}
-          <Animated.View style={firstTwoRowsStyle} pointerEvents={currentBottomHeight > DEFAULT_HEIGHT ? 'auto' : 'none'}>
-            <View style={styles.actionsRow}>
-              {allActions.slice(0, 3).map((action, index) => (
-                <ActionCard
-                  key={index}
-                  icon={action.icon}
-                  label={action.label}
-                  animationProgress={firstTwoRowsProgress}
-                  containerScaleY={firstTwoRowsScaleY}
-                />
-              ))}
-            </View>
-            <View style={[styles.actionsRow, { marginTop: Spacing.actionCardGap }]}>
-              {allActions.slice(3, 6).map((action, index) => (
-                <ActionCard
-                  key={index + 3}
-                  icon={action.icon}
-                  label={action.label}
-                  animationProgress={firstTwoRowsProgress}
-                  containerScaleY={firstTwoRowsScaleY}
-                />
-              ))}
-            </View>
-          </Animated.View>
-
-          {/* Third row - separate animation */}
-          <Animated.View style={[thirdRowStyle, { marginTop: Spacing.actionCardGap }]} pointerEvents={currentBottomHeight > EXPANDED_HEIGHT ? 'auto' : 'none'}>
-            <View style={styles.actionsRow}>
-              {allActions.slice(6, 8).map((action, index) => (
-                <ActionCard
-                  key={index + 6}
-                  icon={action.icon}
-                  label={action.label}
-                  animationProgress={thirdRowProgress}
-                  containerScaleY={thirdRowScaleY}
-                />
-              ))}
-            </View>
-          </Animated.View>
+      {/* AIGlow Layer - Absolute positioned at top, fixed screen position */}
+      <Animated.View style={[styles.aiGlowContainer, aiGlowContainerStyle]} pointerEvents="none">
+        <Animated.View style={[styles.polygonWrapper, polygon1Style]}>
+          <Image 
+            source={require('../assets/png/Polygon 1.png')} 
+            style={styles.polygonImage}
+            resizeMode="cover"
+          />
         </Animated.View>
+        <Animated.View style={[styles.polygonWrapper, polygon2Style]}>
+          <Image 
+            source={require('../assets/png/Polygon 2.png')} 
+            style={styles.polygonImage}
+            resizeMode="cover"
+          />
+        </Animated.View>
+        <Animated.View style={[styles.polygonWrapper, polygon3Style]}>
+          <Image 
+            source={require('../assets/png/Polygon 3.png')} 
+            style={styles.polygonImage}
+            resizeMode="cover"
+          />
+        </Animated.View>
+        <Animated.View style={[styles.polygonWrapper, polygon4Style]}>
+          <Image 
+            source={require('../assets/png/Polygon 4.png')} 
+            style={styles.polygonImage}
+            resizeMode="cover"
+          />
+        </Animated.View>
+      </Animated.View>
+
+      {/* Content Section - Renders based on currentTab */}
+      <View style={[styles.contentSection, { 
+        paddingBottom: inputMode && keyboardHeight > 0 
+          ? keyboardHeight + INPUT_PADDING_ABOVE_KEYBOARD + Math.max(Spacing.containerPaddingBottom, insets.bottom + 8)
+          : 78 + Math.max(Spacing.containerPaddingBottom, insets.bottom + 8) + Spacing.containerGap 
+      }]}>
+        {currentTab === 'Explore' && (
+          // Explore Mode - Action Cards Grid with expandable states
+          <Animated.View style={[styles.actionsContainer, actionsContainerStyle]}>
+            {/* First 2 rows - animate together */}
+            <Animated.View style={firstTwoRowsStyle} pointerEvents={currentBottomHeight > EXPLORE_DEFAULT ? 'auto' : 'none'}>
+              <View style={styles.actionsRow}>
+                {allActions.slice(0, 3).map((action, index) => (
+                  <ActionCard
+                    key={index}
+                    icon={action.icon}
+                    label={action.label}
+                    animationProgress={firstTwoRowsProgress}
+                    containerScaleY={firstTwoRowsScaleY}
+                  />
+                ))}
+              </View>
+              <View style={[styles.actionsRow, { marginTop: Spacing.actionCardGap }]}>
+                {allActions.slice(3, 6).map((action, index) => (
+                  <ActionCard
+                    key={index + 3}
+                    icon={action.icon}
+                    label={action.label}
+                    animationProgress={firstTwoRowsProgress}
+                    containerScaleY={firstTwoRowsScaleY}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* Third row - separate animation */}
+            <Animated.View style={[thirdRowStyle, { marginTop: Spacing.actionCardGap }]} pointerEvents={currentBottomHeight > EXPLORE_MIN ? 'auto' : 'none'}>
+              <View style={styles.actionsRow}>
+                {allActions.slice(6, 8).map((action, index) => (
+                  <ActionCard
+                    key={index + 6}
+                    icon={action.icon}
+                    label={action.label}
+                    animationProgress={thirdRowProgress}
+                    containerScaleY={thirdRowScaleY}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          </Animated.View>
+        )}
+
+        {currentTab === 'Assistant' && (
+          // Assistant Mode - Show 3 buttons or input field
+          inputMode ? (
+            // Input Field Mode
+            <Animated.View style={[styles.inputContainer, assistantContainerAnimatedStyle]}>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  ref={inputRef}
+                  style={styles.textInput}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  placeholder="Ask me anything..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  returnKeyType="send"
+                  onSubmitEditing={handleSubmitInput}
+                  multiline={false}
+                />
+                <TouchableOpacity 
+                  style={styles.submitButton}
+                  onPress={handleSubmitInput}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.submitButtonText}>→</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          ) : (
+            // Assistant Action Buttons
+            <Animated.View style={[styles.assistantActionsContainer, assistantContainerAnimatedStyle]}>
+              <View style={styles.actionsRow}>
+                {assistantActions.map((action, index) => (
+                  <ActionCard
+                    key={index}
+                    icon={action.icon}
+                    label={action.label}
+                    onPress={action.onPress}
+                    animationProgress={{ value: 1 }}
+                    containerScaleY={{ value: 1 }}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+          )
+        )}
+
+        {currentTab === 'Scan' && (
+          // Scan Mode - Placeholder for future implementation
+          <View style={styles.placeholderContainer}>
+            <Text style={styles.placeholderText}>Scan Content</Text>
+          </View>
+        )}
+
+        {currentTab === 'Services' && (
+          // Services Mode - Placeholder for future implementation
+          <View style={styles.placeholderContainer}>
+            <Text style={styles.placeholderText}>Services Content</Text>
+          </View>
+        )}
       </View>
 
       {/* TabBar - Always at Bottom */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { paddingBottom: Math.max(Spacing.containerPaddingBottom, insets.bottom + 8) }]}>
         <TabBarItem
           icon={ScanIcon}
           label="Scan"
-          isActive={activeTab === 'Scan'}
+          isActive={currentTab === 'Scan'}
           size={24}
+          onPress={() => handleTabPress('Scan')}
         />
         <TabBarItem
           icon={UserIcon}
           label="Services"
-          isActive={activeTab === 'Services'}
+          isActive={currentTab === 'Services'}
           size={24}
+          onPress={() => handleTabPress('Services')}
         />
         <TabBarItem
           icon={SquaresFourIcon}
           label="Explore"
-          isActive={activeTab === 'Explore'}
+          isActive={currentTab === 'Explore'}
           size={24}
           isExplore
+          onPress={() => handleTabPress('Explore')}
         />
         <TabBarItem
           icon={AssistantIcon}
           label="Assistant"
-          isActive={activeTab === 'Assistant'}
+          isActive={currentTab === 'Assistant'}
           size={24}
           isAssistant
+          assistantRotation={assistantRotation}
+          assistantScale={assistantScale}
+          onPress={() => handleTabPress('Assistant')}
         />
       </View>
     </View>
   );
 }
 
-const TabBarItem = ({ icon: Icon, label, isActive, size, isExplore, isAssistant }) => (
-  <View style={styles.tabBarItem}>
-    {isAssistant ? (
-      <View style={styles.assistantIconContainer}>
-        {/* AI Glow Background Images */}
-        <Image 
-          source={require('../assets/png/Polygon 1.png')} 
-          style={[styles.aiGlow, styles.aiGlow1]} 
-          resizeMode="contain"
-        />
-        <Image 
-          source={require('../assets/png/Polygon 2.png')} 
-          style={[styles.aiGlow, styles.aiGlow2]} 
-          resizeMode="contain"
-        />
-        <Image 
-          source={require('../assets/png/Polygon 3.png')} 
-          style={[styles.aiGlow, styles.aiGlow3]} 
-          resizeMode="contain"
-        />
-        <Image 
-          source={require('../assets/png/Polygon 4.png')} 
-          style={[styles.aiGlow, styles.aiGlow4]} 
-          resizeMode="contain"
-        />
-        <LinearGradient
-          colors={[Colors.assistantBlue, Colors.assistantBlueMid + 'CC', Colors.assistantBlueEnd + '00']}
-          style={styles.assistantGradient}
-          start={{ x: 0.5, y: 0.5 }}
-          end={{ x: 0.5, y: 1 }}
-        />
-        <View style={[styles.tabBarIconWrapper, styles.tabBarIconWrapperAssistant]}>
-          <Icon size={size} color={Colors.white} />
+const TabBarItem = ({ 
+  icon: Icon, 
+  label, 
+  isActive, 
+  size, 
+  isExplore, 
+  isAssistant, 
+  assistantRotation,
+  assistantScale,
+  onPress
+}) => {
+  // Animated style for rotating and scaling gradient background
+  // Contained within 56x56 container - no glow, no expansion
+  const animatedGradientStyle = useAnimatedStyle(() => {
+    if (!assistantRotation || !assistantScale) {
+      return {
+        transform: [{ rotate: '0deg' }, { scale: 1 }],
+      };
+    }
+    
+    return {
+      transform: [
+        { rotate: `${assistantRotation.value}deg` },
+        { scale: assistantScale.value }
+      ],
+    };
+  });
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    }
+  };
+
+  return (
+    <TouchableOpacity 
+      style={styles.tabBarItem}
+      onPress={handlePress}
+      activeOpacity={0.7}
+      disabled={!onPress}
+    >
+      {isAssistant ? (
+        <View style={styles.assistantIconContainer}>
+          {/* Animated gradient background - contained within 56x56 */}
+          <Animated.View style={[styles.assistantGradientBg, animatedGradientStyle]}>
+            <LinearGradient
+              colors={[
+                '#00F0FF', // Brilliant cyan
+                '#00AAFF', // Electric blue
+                '#8B6FFF', // Vivid purple
+                '#FF6EC7', // Pink accent
+                '#00F0FF', // Back to cyan for seamless loop
+              ]}
+              style={styles.assistantGradientFill}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </Animated.View>
+
+          {/* Icon container */}
+          <View style={[styles.tabBarIconWrapper, styles.tabBarIconWrapperAssistant]}>
+            <Icon size={size} color={Colors.white} />
+          </View>
         </View>
-      </View>
-    ) : (
-      <View
-        style={[
-          styles.tabBarIconWrapper,
-          isActive && isExplore && styles.tabBarIconWrapperActive,
-        ]}
-      >
-        <Icon size={size} color={isActive && isExplore ? Colors.black : Colors.white} />
-      </View>
-    )}
-    <Text style={[styles.tabBarLabel, isActive && isExplore && styles.tabBarLabelActive]}>
-      {label}
-    </Text>
-  </View>
-);
+      ) : (
+        <View
+          style={[
+            styles.tabBarIconWrapper,
+            isActive && isExplore && styles.tabBarIconWrapperActive,
+          ]}
+        >
+          <Icon size={size} color={isActive && isExplore ? Colors.black : Colors.white} />
+        </View>
+      )}
+      <Text style={[styles.tabBarLabel, isActive && isExplore && styles.tabBarLabelActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: SCREEN_WIDTH,
-    justifyContent: 'space-between',
-    backgroundColor: Colors.black,
+    position: 'relative',
   },
-  interactiveLineContainer: {
-    alignItems: 'center',
-    paddingTop: Spacing.containerPaddingTop,
-    paddingBottom: Spacing.sm,
-  },
-  interactiveLine: {
-    backgroundColor: Colors.white14,
-    borderRadius: BorderRadius.full,
+  aiGlowContainer: {
+    position: 'absolute',
+    left: -100,
+    right: -100,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: Sizes.interactiveLineMinHeight,
-    minWidth: Sizes.interactiveLineMinWidth,
+    height: 350,
+    zIndex: 0,
+    overflow: 'visible',
+    // top is controlled by animated style to keep it fixed on screen
   },
-  interactiveLineText: {
-    fontSize: Typography.interactiveLine.fontSize,
-    fontWeight: Typography.interactiveLine.fontWeight,
-    lineHeight: Typography.interactiveLine.lineHeight,
-    color: Colors.white,
-    opacity: Typography.interactiveLine.opacity,
+  polygonWrapper: {
+    width: 250,
+    height: 250,
+    marginHorizontal: -80,
+    overflow: 'visible',
+  },
+  polygonImage: {
+    width: '100%',
+    height: '100%',
   },
   contentSection: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
-    gap: Spacing.containerGap,
-    flexShrink: 0,
+    justifyContent: 'flex-end',
+    paddingTop: Spacing.containerPaddingTop, // 8px from top
+    // paddingBottom applied inline with safe area calculation (56px icon + 8px gap + 14px label + dynamic padding + 20px gap)
   },
   actionsContainer: {
     width: Sizes.actionsContainerWidth,
@@ -619,14 +1050,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     gap: Spacing.tabBarGap,
     paddingHorizontal: Spacing.tabBarPaddingH,
-    paddingBottom: Spacing.containerPaddingBottom,
+    // paddingBottom applied inline with safe area
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    flexShrink: 0,
   },
   tabBarItem: {
     alignItems: 'center',
@@ -651,24 +1085,32 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden', // Contain animation within 56x56
+    borderRadius: BorderRadius.full,
   },
-  assistantGradient: {
+  // Animated gradient background - larger than container so rotation is visible
+  assistantGradientBg: {
     position: 'absolute',
-    width: Sizes.tabBarIconSize * 1.5,
-    height: Sizes.tabBarIconSize * 1.5,
-    borderRadius: Sizes.tabBarIconSize,
-    opacity: 0.6,
+    width: Sizes.tabBarIconSize * 1.8,
+    height: Sizes.tabBarIconSize * 1.8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assistantGradientFill: {
+    width: '100%',
+    height: '100%',
+    borderRadius: BorderRadius.full,
   },
   tabBarIconWrapperAssistant: {
     backgroundColor: 'transparent',
-    overflow: 'visible',
-    borderWidth: 2,
-    borderColor: Colors.assistantBlue + '40',
-    shadowColor: Colors.assistantBlue,
+    overflow: 'hidden',
+    borderWidth: 0,
+    shadowColor: 'transparent',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+    zIndex: 1,
   },
   tabBarLabel: {
     fontSize: Typography.tabBarLabel.fontSize,
@@ -681,30 +1123,52 @@ const styles = StyleSheet.create({
     opacity: Typography.tabBarLabelActive.opacity,
     color: Colors.white,
   },
-  // AI Glow Images
-  aiGlow: {
-    position: 'absolute',
-    width: Sizes.tabBarIconSize * 2,
-    height: Sizes.tabBarIconSize * 2,
+  assistantActionsContainer: {
+    width: Sizes.actionsContainerWidth, // 361px
   },
-  aiGlow1: {
-    top: -Sizes.tabBarIconSize * 0.5,
-    left: -Sizes.tabBarIconSize * 0.5,
-    opacity: 0.6,
+  inputContainer: {
+    width: Sizes.actionsContainerWidth, // 361px
   },
-  aiGlow2: {
-    top: -Sizes.tabBarIconSize * 0.3,
-    right: -Sizes.tabBarIconSize * 0.3,
-    opacity: 0.5,
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white10,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+    minHeight: Sizes.actionCardHeight,
   },
-  aiGlow3: {
-    bottom: -Sizes.tabBarIconSize * 0.4,
-    left: -Sizes.tabBarIconSize * 0.2,
-    opacity: 0.4,
+  textInput: {
+    flex: 1,
+    fontSize: Typography.actionCardLabel.fontSize,
+    fontWeight: Typography.actionCardLabel.fontWeight,
+    color: Colors.white,
+    paddingVertical: 0,
   },
-  aiGlow4: {
-    bottom: -Sizes.tabBarIconSize * 0.3,
-    right: -Sizes.tabBarIconSize * 0.4,
+  submitButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  submitButtonText: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.black,
+  },
+  placeholderContainer: {
+    width: Sizes.actionsContainerWidth,
+    paddingTop: Spacing.containerPaddingTop,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  placeholderText: {
+    fontSize: Typography.actionCardLabel.fontSize,
+    fontWeight: Typography.actionCardLabel.fontWeight,
+    color: Colors.white,
     opacity: 0.5,
   },
 });

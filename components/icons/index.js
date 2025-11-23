@@ -1,21 +1,22 @@
 import React from 'react';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
+import { Colors } from '../../constants/tokens';
 
-export const ScanIcon = ({ size = 24, color = 'white' }) => (
+export const ScanIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M22 15C22 18.771 22 19.657 20.828 20.828C19.656 21.999 18.771 22 15 22M9 22C5.229 22 4.343 22 3.172 20.828C2.001 19.656 2 18.771 2 15M9 2C5.229 2 4.343 2 3.172 3.172C2.001 4.344 2 5.229 2 9M15 2C18.771 2 19.657 2 20.828 3.172C21.999 4.344 22 5.229 22 9" stroke={color} strokeWidth="2" strokeLinecap="round"/>
     <Path d="M13.0703 18.1406C12.9089 18.1406 12.7604 18.1042 12.625 18.0312C12.4948 17.9583 12.349 17.8438 12.1875 17.6875L8.51562 14.1562C8.31771 13.9583 8.17448 13.7891 8.08594 13.6484C7.9974 13.5026 7.95312 13.3333 7.95312 13.1406V13.0547C7.95312 12.7682 8.04688 12.5495 8.23438 12.3984C8.42188 12.2474 8.65885 12.1719 8.94531 12.1719H10.4922C11.2161 12.1719 11.7552 12.0104 12.1094 11.6875C12.4688 11.3646 12.6484 10.9036 12.6484 10.3047C12.6484 9.72135 12.4609 9.26562 12.0859 8.9375C11.7161 8.60417 11.1719 8.4375 10.4531 8.4375H8.64844C8.42969 8.4375 8.25521 8.3724 8.125 8.24219C7.99479 8.11198 7.92969 7.9349 7.92969 7.71094V7.64062C7.92969 7.41667 7.99479 7.23958 8.125 7.10938C8.26042 6.97396 8.4349 6.90625 8.64844 6.90625H11.0469C11.7865 6.90625 12.4297 7.03906 12.9766 7.30469C13.5234 7.57031 13.9479 7.95573 14.25 8.46094C14.5521 8.96094 14.7031 9.5651 14.7031 10.2734C14.7031 10.6536 14.6328 11.0417 14.4922 11.4375C14.3568 11.8281 14.1458 12.1901 13.8594 12.5234C13.5729 12.8516 13.2031 13.1224 12.75 13.3359C12.3021 13.5495 11.763 13.6667 11.1328 13.6875L10.7422 13.6797L13.6562 16.4453C13.776 16.5599 13.8698 16.6823 13.9375 16.8125C14.0052 16.9375 14.0391 17.0703 14.0391 17.2109C14.0391 17.3932 13.9922 17.5547 13.8984 17.6953C13.8047 17.8307 13.6849 17.9375 13.5391 18.0156C13.3932 18.099 13.237 18.1406 13.0703 18.1406ZM16.1562 10.3047C16.1562 10.4245 16.1172 10.5234 16.0391 10.6016C15.9661 10.6797 15.8698 10.7188 15.75 10.7188H8.42188C8.30208 10.7188 8.20312 10.6797 8.125 10.6016C8.05208 10.5234 8.01562 10.4245 8.01562 10.3047C8.01562 10.1901 8.05208 10.0938 8.125 10.0156C8.20312 9.9375 8.30208 9.89844 8.42188 9.89844H15.75C15.8698 9.89844 15.9661 9.9375 16.0391 10.0156C16.1172 10.0938 16.1562 10.1901 16.1562 10.3047ZM16.1562 7.67969C16.1562 7.79427 16.1172 7.89323 16.0391 7.97656C15.9661 8.05469 15.8698 8.09375 15.75 8.09375H8.46875C8.35417 8.09375 8.25781 8.05469 8.17969 7.97656C8.10156 7.89844 8.0625 7.79948 8.0625 7.67969C8.0625 7.5651 8.10156 7.46875 8.17969 7.39062C8.25781 7.3125 8.35417 7.27344 8.46875 7.27344H15.75C15.8698 7.27344 15.9661 7.3125 16.0391 7.39062C16.1172 7.46354 16.1562 7.5599 16.1562 7.67969Z" fill={color}/>
   </Svg>
 );
 
-export const UserIcon = ({ size = 24, color = 'white' }) => (
+export const UserIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M12 15C15.3137 15 18 12.3137 18 9C18 5.68629 15.3137 3 12 3C8.68629 3 6 5.68629 6 9C6 12.3137 8.68629 15 12 15Z" stroke={color} strokeWidth="2" strokeMiterlimit="10"/>
     <Path d="M2.90625 20.2499C3.82775 18.6534 5.15328 17.3277 6.74958 16.406C8.34588 15.4843 10.1567 14.999 12 14.999C13.8433 14.999 15.6541 15.4843 17.2504 16.406C18.8467 17.3277 20.1722 18.6534 21.0938 20.2499" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </Svg>
 );
 
-export const SquaresFourIcon = ({ size = 24, color = 'white' }) => (
+export const SquaresFourIcon = ({ size = 28, color = Colors.black }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M8.25 3.25H5.25C4.14543 3.25 3.25 4.14543 3.25 5.25V8.25C3.25 9.35457 4.14543 10.25 5.25 10.25H8.25C9.35457 10.25 10.25 9.35457 10.25 8.25V5.25C10.25 4.14543 9.35457 3.25 8.25 3.25Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M20.7855 5.33583L18.6642 3.21451C17.8832 2.43346 16.6168 2.43346 15.8358 3.21451L13.7145 5.33583C12.9334 6.11688 12.9334 7.38321 13.7145 8.16425L15.8358 10.2856C16.6168 11.0666 17.8832 11.0666 18.6642 10.2856L20.7855 8.16425C21.5666 7.38321 21.5666 6.11688 20.7855 5.33583Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -24,13 +25,13 @@ export const SquaresFourIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const AssistantIcon = ({ size = 24, color = 'white' }) => (
+export const AssistantIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M13 2.75C13.6904 2.75 14.25 3.30964 14.25 4V22C14.25 22.6904 13.6904 23.25 13 23.25C12.3096 23.25 11.75 22.6904 11.75 22V4C11.75 3.30964 12.3096 2.75 13 2.75ZM6 11.25C6.69036 11.25 7.25 11.8096 7.25 12.5V17C7.25 17.6904 6.69036 18.25 6 18.25C5.30964 18.25 4.75 17.6904 4.75 17V12.5C4.75 11.8096 5.30964 11.25 6 11.25ZM20 7.25C20.6904 7.25 21.25 7.80964 21.25 8.5V17C21.25 17.6904 20.6904 18.25 20 18.25C19.3096 18.25 18.75 17.6904 18.75 17V8.5C18.75 7.80964 19.3096 7.25 20 7.25ZM5.50098 2C5.61897 2.00015 5.73315 2.04198 5.82324 2.11816C5.91349 2.19468 5.97374 2.30126 5.99316 2.41797C6.13266 3.25297 6.40149 3.81798 6.79199 4.20898C7.18249 4.59938 7.74815 4.86736 8.58301 5.00684C8.69935 5.02661 8.80468 5.08759 8.88086 5.17773C8.95704 5.26795 8.99902 5.38191 8.99902 5.5C8.99902 5.61809 8.95704 5.73205 8.88086 5.82227C8.80468 5.91241 8.69935 5.97339 8.58301 5.99316C7.74815 6.13264 7.18298 6.40062 6.79199 6.79102C6.40149 7.18152 6.13266 7.74703 5.99316 8.58203C5.97345 8.69849 5.91346 8.80462 5.82324 8.88086C5.73313 8.95693 5.6189 8.99893 5.50098 8.99902C5.38287 8.99902 5.26796 8.95707 5.17773 8.88086C5.08751 8.80461 5.02753 8.6985 5.00781 8.58203C4.86834 7.74717 4.60035 7.18201 4.20996 6.79102C3.81952 6.40058 3.25374 6.13268 2.41895 5.99316C2.30245 5.97346 2.19638 5.91251 2.12012 5.82227C2.04398 5.73206 2.00195 5.61805 2.00195 5.5C2.00195 5.38195 2.04398 5.26794 2.12012 5.17773C2.19638 5.08749 2.30245 5.02654 2.41895 5.00684C3.25374 4.86732 3.81902 4.59942 4.20996 4.20898C4.60035 3.81849 4.86834 3.25283 5.00781 2.41797L5.0166 2.37305C5.04465 2.26619 5.10785 2.17199 5.19531 2.10449C5.28287 2.03697 5.3904 1.99994 5.50098 2Z" fill={color}/>
   </Svg>
 );
 
-export const HandshakeIcon = ({ size = 24, color = 'white' }) => (
+export const HandshakeIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M22.5656 11.4186L20.25 12.5717L17.25 6.8342L19.5938 5.66232C19.7679 5.57354 19.9701 5.55722 20.1563 5.61693C20.3425 5.67665 20.4975 5.80754 20.5875 5.98107L22.8937 10.3967C22.9405 10.4851 22.9691 10.5819 22.9779 10.6816C22.9867 10.7812 22.9755 10.8815 22.9449 10.9767C22.9143 11.072 22.865 11.1601 22.7999 11.236C22.7348 11.3118 22.6551 11.3739 22.5656 11.4186V11.4186Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M3.74984 12.4784L1.43422 11.3159C1.34506 11.2722 1.26559 11.211 1.20055 11.136C1.13551 11.0609 1.08622 10.9736 1.05561 10.8791C1.02499 10.7847 1.01369 10.685 1.02236 10.5861C1.03103 10.4872 1.05951 10.3911 1.10609 10.3034L3.41234 5.88774C3.50256 5.71433 3.65691 5.58299 3.84253 5.52171C4.02814 5.46042 4.23035 5.47402 4.40609 5.55961L6.74984 6.73149L3.74984 12.4784Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -41,7 +42,7 @@ export const HandshakeIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const ChartBarIcon = ({ size = 24, color = 'white' }) => (
+export const ChartBarIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M4.125 19.5V12.75H9.375" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M21.375 19.5H2.625" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -50,14 +51,14 @@ export const ChartBarIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const ShieldCheckIcon = ({ size = 24, color = 'white' }) => (
+export const ShieldCheckIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M3.75 10.7531V5.25C3.75 5.05109 3.82902 4.86032 3.96967 4.71967C4.11032 4.57902 4.30109 4.5 4.5 4.5H19.5C19.6989 4.5 19.8897 4.57902 20.0303 4.71967C20.171 4.86032 20.25 5.05109 20.25 5.25V10.7531C20.25 18.6281 13.5656 21.2344 12.2344 21.675C12.0831 21.731 11.9169 21.731 11.7656 21.675C10.4344 21.2344 3.75 18.6281 3.75 10.7531Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M16.125 9.75L10.6219 15L7.875 12.375" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </Svg>
 );
 
-export const ShoppingCartIcon = ({ size = 24, color = 'white' }) => (
+export const ShoppingCartIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 25 24" fill="none">
     <Path d="M7.75 21.75C8.57843 21.75 9.25 21.0784 9.25 20.25C9.25 19.4216 8.57843 18.75 7.75 18.75C6.92157 18.75 6.25 19.4216 6.25 20.25C6.25 21.0784 6.92157 21.75 7.75 21.75Z" fill={color}/>
     <Path d="M17.5 21.75C18.3284 21.75 19 21.0784 19 20.25C19 19.4216 18.3284 18.75 17.5 18.75C16.6716 18.75 16 19.4216 16 20.25C16 21.0784 16.6716 21.75 17.5 21.75Z" fill={color}/>
@@ -65,7 +66,7 @@ export const ShoppingCartIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const ReceiptIcon = ({ size = 24, color = 'white' }) => (
+export const ReceiptIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M7.125 9.75H16.875" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M7.125 12.75H16.875" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -73,7 +74,7 @@ export const ReceiptIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const CarIcon = ({ size = 24, color = 'white' }) => (
+export const CarIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M1.5 11.25H22.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M21 17.25V19.5C21 19.6989 20.921 19.8897 20.7803 20.0303C20.6397 20.171 20.4489 20.25 20.25 20.25H18C17.8011 20.25 17.6103 20.171 17.4697 20.0303C17.329 19.8897 17.25 19.6989 17.25 19.5V17.25" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -84,7 +85,7 @@ export const CarIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const StorefrontIcon = ({ size = 24, color = 'white' }) => (
+export const StorefrontIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M4.5 13.0874V19.4999C4.5 19.6988 4.57902 19.8896 4.71967 20.0302C4.86032 20.1709 5.05109 20.2499 5.25 20.2499H18.75C18.9489 20.2499 19.1397 20.1709 19.2803 20.0302C19.421 19.8896 19.5 19.6988 19.5 19.4999V13.0874" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
     <Path d="M5.0625 3.75H18.9375C19.1002 3.75134 19.2582 3.8049 19.3881 3.9028C19.5181 4.00069 19.6132 4.13774 19.6594 4.29375L21 9H3L4.34062 4.29375C4.38682 4.13774 4.4819 4.00069 4.61187 3.9028C4.74183 3.8049 4.8998 3.75134 5.0625 3.75V3.75Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -94,8 +95,35 @@ export const StorefrontIcon = ({ size = 24, color = 'white' }) => (
   </Svg>
 );
 
-export const FirstAidIcon = ({ size = 24, color = 'white' }) => (
+export const FirstAidIcon = ({ size = 24, color = Colors.white }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
     <Path d="M9 15H3.75C3.55109 15 3.36032 14.921 3.21967 14.7803C3.07902 14.6397 3 14.4489 3 14.25V9.75C3 9.55109 3.07902 9.36032 3.21967 9.21967C3.36032 9.07902 3.55109 9 3.75 9H9V3.75C9 3.55109 9.07902 3.36032 9.21967 3.21967C9.36032 3.07902 9.55109 3 9.75 3H14.25C14.4489 3 14.6397 3.07902 14.7803 3.21967C14.921 3.36032 15 3.55109 15 3.75V9H20.25C20.4489 9 20.6397 9.07902 20.7803 9.21967C20.921 9.36032 21 9.55109 21 9.75V14.25C21 14.4489 20.921 14.6397 20.7803 14.7803C20.6397 14.921 20.4489 15 20.25 15H15V20.25C15 20.4489 14.921 20.6397 14.7803 20.7803C14.6397 20.921 14.4489 21 14.25 21H9.75C9.55109 21 9.36032 20.921 9.21967 20.7803C9.07902 20.6397 9 20.4489 9 20.25V15Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </Svg>
 );
+
+export const VideoCameraIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M2.25 5.625H14.25C15.0456 5.625 15.8087 5.94107 16.3713 6.50368C16.9339 7.06629 17.25 7.82935 17.25 8.625V17.625C17.25 17.8239 17.171 18.0147 17.0303 18.1553C16.8897 18.296 16.6989 18.375 16.5 18.375H4.5C3.70435 18.375 2.94129 18.0589 2.37868 17.4963C1.81607 16.9337 1.5 16.1706 1.5 15.375V6.375C1.5 6.17609 1.57902 5.98532 1.71967 5.84467C1.86032 5.70402 2.05109 5.625 2.25 5.625V5.625Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M17.25 10.5L22.5 7.5V16.5L17.25 13.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+export const MicrophoneIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M15.75 6C15.75 3.92893 14.0711 2.25 12 2.25C9.92893 2.25 8.25 3.92893 8.25 6V12C8.25 14.0711 9.92893 15.75 12 15.75C14.0711 15.75 15.75 14.0711 15.75 12V6Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M12 18.75V21.75" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M18.7121 12.75C18.5175 14.3936 17.7267 15.9087 16.4895 17.0081C15.2523 18.1075 13.6547 18.7147 11.9996 18.7147C10.3445 18.7147 8.74695 18.1075 7.50975 17.0081C6.27254 15.9087 5.48169 14.3936 5.28711 12.75" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+export const KeyboardIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M20.9531 5.25H3.04688C2.60677 5.25 2.25 5.60677 2.25 6.04688V17.9531C2.25 18.3932 2.60677 18.75 3.04688 18.75H20.9531C21.3932 18.75 21.75 18.3932 21.75 17.9531V6.04688C21.75 5.60677 21.3932 5.25 20.9531 5.25Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M5.25 12H18.75" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M5.25 9H18.75" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M5.25 15H6" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M9 15H15" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M18 15H18.75" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
