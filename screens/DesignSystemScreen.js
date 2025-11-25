@@ -25,10 +25,22 @@ const COMPONENTS = [
     category: 'Navigation',
   },
   {
+    id: 'animatedtabs',
+    name: 'AnimatedTabs',
+    description: 'Tabs with animated white background indicator, supports minimized/expanded states',
+    category: 'Navigation',
+  },
+  {
     id: 'inputbar',
     name: 'InputBar',
     description: 'Interactive input bar with video call, text input, and voice interaction',
     category: 'Input',
+  },
+  {
+    id: 'dragcomponent',
+    name: 'DragComponent',
+    description: 'Draggable component that morphs between no-text and with-text states',
+    category: 'Interactive',
   },
   // Add more components here as they are created
 ];
@@ -42,8 +54,12 @@ export default function DesignSystemScreen({ navigation }) {
       navigation.navigate('ButtonComponentsDetail');
     } else if (component.id === 'tabbar') {
       navigation.navigate('TabBarDetail');
+    } else if (component.id === 'animatedtabs') {
+      navigation.navigate('AnimatedTabsDetail');
     } else if (component.id === 'inputbar') {
       navigation.navigate('InputBarDetail');
+    } else if (component.id === 'dragcomponent') {
+      navigation.navigate('DragComponentDetail');
     } else {
       // Fallback to generic component detail screen
       navigation.navigate('ComponentDetail', { component });

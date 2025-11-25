@@ -9,8 +9,10 @@ import ExploreScreen from './screens/ExploreScreen';
 import DesignSystemScreen from './screens/DesignSystemScreen';
 import ComponentDetailScreen from './screens/ComponentDetailScreen';
 import TabBarDetailScreen from './screens/TabBarDetailScreen';
+import AnimatedTabsDetailScreen from './screens/AnimatedTabsDetailScreen';
 import InputBarDetailScreen from './screens/InputBarDetailScreen';
 import ButtonComponentsDetailScreen from './screens/ButtonComponentsDetailScreen';
+import DragComponentDetailScreen from './screens/DragComponentDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,7 +33,9 @@ export default function App() {
             <Stack.Screen name="ComponentDetail" component={ComponentDetailScreen} />
             <Stack.Screen name="ButtonComponentsDetail" component={ButtonComponentsDetailScreen} />
             <Stack.Screen name="TabBarDetail" component={TabBarDetailScreen} />
+            <Stack.Screen name="AnimatedTabsDetail" component={AnimatedTabsDetailScreen} />
             <Stack.Screen name="InputBarDetail" component={InputBarDetailScreen} />
+            <Stack.Screen name="DragComponentDetail" component={DragComponentDetailScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>
