@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: Colors.white,
     opacity: 0.5,

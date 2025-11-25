@@ -60,6 +60,7 @@ export default function InputBar({
   onSend,
   onVideoPress,
   onVoicePress,
+  onFocus, // Callback when input is focused
   style,
   // Props to force specific states for demo purposes
   forceState = null, // 'default', 'focused', 'multiline', 'generating', 'voice'
@@ -251,6 +252,11 @@ export default function InputBar({
     
     setIsFocused(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    // Call onFocus callback if provided
+    if (onFocus) {
+      onFocus();
+    }
   };
 
   // Handle input blur

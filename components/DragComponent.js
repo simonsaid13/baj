@@ -33,8 +33,14 @@ export default function DragComponent({ text = '', style }) {
   // Text line height from Typography tokens
   const TEXT_LINE_HEIGHT = Typography.interactiveLine.lineHeight; // 14px
   
-  // Height for with-text state: line height (14px) + padding top (6px) + padding bottom (6px) = 26px
-  const WITH_TEXT_HEIGHT = TEXT_LINE_HEIGHT + (TEXT_PADDING_V * 2); // 14 + 12 = 26px
+  // InteractiveLine height: line height (14px) + padding top (6px) + padding bottom (6px) = 26px
+  const INTERACTIVE_LINE_HEIGHT = TEXT_LINE_HEIGHT + (TEXT_PADDING_V * 2); // 14 + 12 = 26px
+  
+  // Gap between outer container and InteractiveLine (from Figma: gap-[12px])
+  const CONTAINER_GAP = 12;
+  
+  // Total DragComponent height when with text: InteractiveLine height + gap
+  const WITH_TEXT_HEIGHT = INTERACTIVE_LINE_HEIGHT + CONTAINER_GAP; // 26 + 12 = 38px
   
   // Measure text width (approximate calculation)
   // Using fontSize 11, we can estimate width: ~6.5px per character for semi-bold font
@@ -51,71 +57,83 @@ export default function DragComponent({ text = '', style }) {
       const textWidth = estimateTextWidth(text);
       return {
         width: textWidth + (TEXT_PADDING_H * 2),
-        height: WITH_TEXT_HEIGHT, // 26px
+        containerHeight: WITH_TEXT_HEIGHT, // 38px (outer container)
+        interactiveLineHeight: INTERACTIVE_LINE_HEIGHT, // 26px (inner pill)
       };
     }
     return {
       width: NO_TEXT_WIDTH,
-      height: NO_TEXT_HEIGHT,
+      containerHeight: NO_TEXT_HEIGHT,
+      interactiveLineHeight: NO_TEXT_HEIGHT,
     };
   };
   
   const initialDimensions = getInitialDimensions();
   
+  // Top margin values (container already has 7px paddingTop from ResizableSplitView)
+  // No text state: needs 17px total, so 10px additional margin
+  // Text state: needs 7px total, so 0px additional margin
+  const NO_TEXT_MARGIN_TOP = 10;
+  const TEXT_MARGIN_TOP = 0;
+  
   // Animated values
   const width = useSharedValue(initialDimensions.width);
-  const height = useSharedValue(initialDimensions.height);
+  const containerHeight = useSharedValue(initialDimensions.containerHeight);
+  const interactiveLineHeight = useSharedValue(initialDimensions.interactiveLineHeight);
   const textOpacity = useSharedValue(hasText ? 1 : 0);
   const containerOpacity = useSharedValue(1);
+  const marginTop = useSharedValue(hasText ? TEXT_MARGIN_TOP : NO_TEXT_MARGIN_TOP);
   
   // Update dimensions when text changes
   useEffect(() => {
     const hasTextNow = text && text.trim().length > 0;
     
+    const springConfig = {
+      damping: 15,
+      stiffness: 200,
+      mass: 0.5,
+    };
+    
     if (hasTextNow) {
       // With text: expand to fit content
       const textWidth = estimateTextWidth(text);
       const targetWidth = textWidth + (TEXT_PADDING_H * 2);
-      const targetHeight = WITH_TEXT_HEIGHT; // 26px (14px line height + 12px padding)
       
       // Animate to expanded state
-      width.value = withSpring(targetWidth, {
-        damping: 15,
-        stiffness: 200,
-        mass: 0.5,
-      });
-      height.value = withSpring(targetHeight, {
-        damping: 15,
-        stiffness: 200,
-        mass: 0.5,
-      });
+      width.value = withSpring(targetWidth, springConfig);
+      containerHeight.value = withSpring(WITH_TEXT_HEIGHT, springConfig); // 38px outer container
+      interactiveLineHeight.value = withSpring(INTERACTIVE_LINE_HEIGHT, springConfig); // 26px inner pill
+      marginTop.value = withSpring(TEXT_MARGIN_TOP, springConfig); // 0px additional margin
       
       // Fade in text
       textOpacity.value = withTiming(1, { duration: 200 });
     } else {
       // No text: collapse to minimal state
-      width.value = withSpring(NO_TEXT_WIDTH, {
-        damping: 15,
-        stiffness: 200,
-        mass: 0.5,
-      });
-      height.value = withSpring(NO_TEXT_HEIGHT, {
-        damping: 15,
-        stiffness: 200,
-        mass: 0.5,
-      });
+      width.value = withSpring(NO_TEXT_WIDTH, springConfig);
+      containerHeight.value = withSpring(NO_TEXT_HEIGHT, springConfig);
+      interactiveLineHeight.value = withSpring(NO_TEXT_HEIGHT, springConfig);
+      marginTop.value = withSpring(NO_TEXT_MARGIN_TOP, springConfig); // 10px additional margin
       
       // Fade out text
       textOpacity.value = withTiming(0, { duration: 150 });
     }
   }, [text]);
   
-  // Animated container style
+  // Animated outer container style
   const containerStyle = useAnimatedStyle(() => {
     return {
       width: width.value,
-      height: height.value,
+      height: containerHeight.value,
       opacity: containerOpacity.value,
+      marginTop: marginTop.value,
+    };
+  });
+  
+  // Animated InteractiveLine (blur pill) style
+  const interactiveLineStyle = useAnimatedStyle(() => {
+    return {
+      width: width.value,
+      height: interactiveLineHeight.value,
     };
   });
   
@@ -128,19 +146,21 @@ export default function DragComponent({ text = '', style }) {
   
   return (
     <Animated.View style={[styles.container, containerStyle, style]}>
-      <BlurView
-        intensity={2}
-        tint="light"
-        style={styles.blurContainer}
-      >
-        <Animated.View style={[styles.textContainer, textStyle]}>
-          {hasText && (
-            <Text style={styles.text} numberOfLines={1}>
-              {text}
-            </Text>
-          )}
-        </Animated.View>
-      </BlurView>
+      <Animated.View style={[styles.interactiveLineWrapper, interactiveLineStyle]}>
+        <BlurView
+          intensity={2}
+          tint="light"
+          style={styles.blurContainer}
+        >
+          <Animated.View style={[styles.textContainer, textStyle]}>
+            {hasText && (
+              <Text style={styles.text} numberOfLines={1}>
+                {text}
+              </Text>
+            )}
+          </Animated.View>
+        </BlurView>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -149,6 +169,10 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  interactiveLineWrapper: {
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
   },
   blurContainer: {
     width: '100%',

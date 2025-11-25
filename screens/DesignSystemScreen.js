@@ -42,6 +42,12 @@ const COMPONENTS = [
     description: 'Draggable component that morphs between no-text and with-text states',
     category: 'Interactive',
   },
+  {
+    id: 'contextbar',
+    name: 'ContextBar',
+    description: 'Resizable bottom container with AIGlow animations, AnimatedTabs, InputBar, and TabBar',
+    category: 'Layout',
+  },
   // Add more components here as they are created
 ];
 
@@ -60,6 +66,8 @@ export default function DesignSystemScreen({ navigation }) {
       navigation.navigate('InputBarDetail');
     } else if (component.id === 'dragcomponent') {
       navigation.navigate('DragComponentDetail');
+    } else if (component.id === 'contextbar') {
+      navigation.navigate('ContextBarDetail');
     } else {
       // Fallback to generic component detail screen
       navigation.navigate('ComponentDetail', { component });

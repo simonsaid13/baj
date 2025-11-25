@@ -4,25 +4,32 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSharedValue } from 'react-native-reanimated';
 import ResizableSplitView from '../components/ResizableSplitView';
-import BottomContainer from '../components/BottomContainer';
+import ContextBar from '../components/ContextBar';
 import { Colors, BorderRadius, Spacing } from '../constants/tokens';
 
 import ExploreContent from '../components/ExploreContent';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Bottom container heights to match Figma designs
-const EXPLORE_DEFAULT = 140;      // Explore collapsed: just tab bar + interactive line
-const ASSISTANT_HEIGHT = 220;     // Assistant mode: 3 action buttons
-const EXPLORE_MIN = 320;          // Explore min: 6 action cards (2 rows)
-const EXPLORE_MAX = 400;          // Explore max: 8 action cards (3 rows)
+// Height constants - ONLY MIN AND MAX (MUST match ResizableSplitView.js & ContextBar.js)
+const EXPLORE_MIN = 220;          // Explore min: InputBar + TabBar + spacing
+const EXPLORE_MAX = 280;          // Explore max: AnimatedTabs + InputBar + TabBar
+const SERVICE_MIN = 220;          // Service min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const SERVICE_MAX = 460;          // Service max: ButtonBar (3 lines × 72px + gaps) + InputBar + TabBar + spacing
+const PAY_MIN = 220;              // Pay min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const PAY_MAX = 312;              // Pay max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (PAY_MIN + 92px)
+const WORLDS_MIN = 220;           // Worlds min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const WORLDS_MAX = 312;           // Worlds max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (WORLDS_MIN + 92px)
+const ASSISTANT_MIN = 220;        // Assistant min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const ASSISTANT_MAX = 312;        // Assistant max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (ASSISTANT_MIN + 92px)
 
 export default function ExploreScreen({ navigation }) {
-  // Initialize to EXPLORE_DEFAULT (collapsed state)
-  const bottomHeightSharedValue = useSharedValue(EXPLORE_DEFAULT);
-  const [bottomHeight, setBottomHeight] = React.useState(EXPLORE_DEFAULT);
+  // Initialize to EXPLORE_MIN
+  const bottomHeightSharedValue = useSharedValue(EXPLORE_MIN);
+  const [bottomHeight, setBottomHeight] = React.useState(EXPLORE_MIN);
   const [externalBottomHeight, setExternalBottomHeight] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('Explore');
-  const prevHeightRef = React.useRef(EXPLORE_DEFAULT);
+  const prevHeightRef = React.useRef(EXPLORE_MIN);
   
   // Handle Design System button press
   const handleDesignSystemPress = useCallback(() => {
@@ -32,26 +39,7 @@ export default function ExploreScreen({ navigation }) {
     }
   }, [navigation]);
   
-  // Determine interactive text based on state and active tab
-  const getInteractiveText = React.useCallback((height, currentTab) => {
-    // Only show "+2 more" text in Explore mode (between EXPLORE_DEFAULT and EXPLORE_MIN)
-    if (currentTab !== 'Explore') {
-      return '';
-    }
-    
-    if (height > EXPLORE_DEFAULT && height <= EXPLORE_MIN) {
-      return '+2 more';
-    }
-    return '';
-  }, []);
-  
   const [interactiveText, setInteractiveText] = React.useState('');
-  
-  // Update interactive text when height or tab changes
-  React.useEffect(() => {
-    const text = getInteractiveText(bottomHeight, activeTab);
-    setInteractiveText(text);
-  }, [bottomHeight, activeTab, getInteractiveText]);
 
   const handleStateChange = useCallback((newBottomHeight) => {
     const prevHeight = prevHeightRef.current;
@@ -61,20 +49,46 @@ export default function ExploreScreen({ navigation }) {
     }
     
     // Haptic feedback based on state transitions
-    const isExpanding = newBottomHeight > prevHeight;
-    
-    if (newBottomHeight <= EXPLORE_DEFAULT + 10) {
-      // Collapsed
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } else if (newBottomHeight > EXPLORE_DEFAULT + 10 && newBottomHeight <= ASSISTANT_HEIGHT + 10) {
-      // Assistant mode
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } else if (newBottomHeight > ASSISTANT_HEIGHT + 10 && newBottomHeight <= EXPLORE_MIN + 10) {
-      // Expanded with 6 cards
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } else if (newBottomHeight > EXPLORE_MIN + 10) {
-      // Fully expanded with 8 cards
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (activeTab === 'Services') {
+      if (newBottomHeight <= SERVICE_MIN + 10) {
+        // ServiceMin state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (newBottomHeight >= SERVICE_MAX - 10) {
+        // ServiceMax state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
+    } else if (activeTab === 'Pay') {
+      if (newBottomHeight <= PAY_MIN + 10) {
+        // PayMin state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (newBottomHeight >= PAY_MAX - 10) {
+        // PayMax state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
+    } else if (activeTab === 'Worlds') {
+      if (newBottomHeight <= WORLDS_MIN + 10) {
+        // WorldsMin state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (newBottomHeight >= WORLDS_MAX - 10) {
+        // WorldsMax state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
+    } else if (activeTab === 'Assistant') {
+      if (newBottomHeight <= ASSISTANT_MIN + 10) {
+        // AssistantMin state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (newBottomHeight >= ASSISTANT_MAX - 10) {
+        // AssistantMax state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
+    } else {
+      if (newBottomHeight <= EXPLORE_MIN + 10) {
+        // ExploreMin state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (newBottomHeight >= EXPLORE_MAX - 10) {
+        // ExploreMax state
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }
     }
     
     prevHeightRef.current = newBottomHeight;
@@ -109,13 +123,17 @@ export default function ExploreScreen({ navigation }) {
     console.log('Tab changed to:', tabName);
   }, []);
 
+  const handleInteractiveTextChange = useCallback((text) => {
+    setInteractiveText(text);
+  }, []);
+
   const bottomSection = (
-    <BottomContainer 
-      bottomHeight={bottomHeight} 
+    <ContextBar 
       bottomHeightSharedValue={bottomHeightSharedValue}
       activeTab={activeTab}
       onHeightChange={handleHeightChange}
       onTabChange={handleTabChange}
+      onInteractiveTextChange={handleInteractiveTextChange}
     />
   );
 
@@ -127,7 +145,7 @@ export default function ExploreScreen({ navigation }) {
       bottomHeightSharedValue={bottomHeightSharedValue}
       interactiveText={interactiveText}
       externalBottomHeight={externalBottomHeight}
-      enableDrag={activeTab === 'Explore'}
+      enableDrag={activeTab === 'Explore' || activeTab === 'Services' || activeTab === 'Pay' || activeTab === 'Worlds' || activeTab === 'Assistant'}
       activeTab={activeTab}
     />
   );

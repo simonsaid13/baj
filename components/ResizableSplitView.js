@@ -1,5 +1,5 @@
-import React from 'react';
-import { Dimensions, StyleSheet, View, Text } from 'react-native';
+import React, { useState } from 'react';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -8,27 +8,48 @@ import Animated, {
   withTiming,
   runOnJS,
   useAnimatedReaction,
+  Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurView } from 'expo-blur';
-import { Colors, Spacing, BorderRadius, Sizes, Typography } from '../constants/tokens';
+import { Colors } from '../constants/tokens';
+import DragComponent from './DragComponent';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const HEADER_HEIGHT = 0; // Removed header height offset
 const STATUS_BAR_HEIGHT = 0;
 const HANDLE_HEIGHT = 40; // Defined handle height
 
-// Define heights based on bottom container states
-const BOTTOM_EXPLORE_DEFAULT = 140;      // Explore collapsed state
-const BOTTOM_ASSISTANT_HEIGHT = 220;     // Assistant mode: 3 action buttons
-const BOTTOM_EXPLORE_MIN = 320;          // Explore min: 6 action cards (2 rows)
-const BOTTOM_EXPLORE_MAX = 400;          // Explore max: 8 action cards (3 rows)
+// Define heights - ONLY MIN AND MAX (MUST match ContextBar.js)
+const BOTTOM_EXPLORE_MIN = 220;          // Explore min: InputBar + TabBar + spacing
+const BOTTOM_EXPLORE_MAX = 280;          // Explore max: AnimatedTabs + InputBar + TabBar
+const BOTTOM_SERVICE_MIN = 220;          // Service min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const BOTTOM_SERVICE_MAX = 460;          // Service max: ButtonBar (3 lines × 72px + gaps) + InputBar + TabBar + spacing
+const BOTTOM_PAY_MIN = 220;              // Pay min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const BOTTOM_PAY_MAX = 312;              // Pay max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (PAY_MIN + 92px)
+const BOTTOM_WORLDS_MIN = 220;          // Worlds min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const BOTTOM_WORLDS_MAX = 312;           // Worlds max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (WORLDS_MIN + 92px)
+const BOTTOM_ASSISTANT_MIN = 220;       // Assistant min: InputBar + TabBar + spacing (same as EXPLORE_MIN)
+const BOTTOM_ASSISTANT_MAX = 312;        // Assistant max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (ASSISTANT_MIN + 92px)
 
-// Calculate top section heights from bottom heights - accounting for full screen usage (no status bar padding)
-const MIN_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_EXPLORE_MAX - HANDLE_HEIGHT;
-const DEFAULT_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_EXPLORE_MIN - HANDLE_HEIGHT;
-const ASSISTANT_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_ASSISTANT_HEIGHT - HANDLE_HEIGHT;
-const MAX_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_EXPLORE_DEFAULT - HANDLE_HEIGHT;
+// Calculate top section heights for Explore tab
+const EXPLORE_MIN_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_EXPLORE_MAX - HANDLE_HEIGHT;  // Smallest top (largest bottom)
+const EXPLORE_MAX_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_EXPLORE_MIN - HANDLE_HEIGHT;  // Largest top (smallest bottom)
+
+// Calculate top section heights for Services tab
+const SERVICE_MIN_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_SERVICE_MAX - HANDLE_HEIGHT;  // Smallest top (largest bottom)
+const SERVICE_MAX_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_SERVICE_MIN - HANDLE_HEIGHT;  // Largest top (smallest bottom)
+
+// Calculate top section heights for Pay tab
+const PAY_MIN_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_PAY_MAX - HANDLE_HEIGHT;  // Smallest top (largest bottom)
+const PAY_MAX_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_PAY_MIN - HANDLE_HEIGHT;  // Largest top (smallest bottom)
+
+// Calculate top section heights for Worlds tab
+const WORLDS_MIN_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_WORLDS_MAX - HANDLE_HEIGHT;  // Smallest top (largest bottom)
+const WORLDS_MAX_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_WORLDS_MIN - HANDLE_HEIGHT;  // Largest top (smallest bottom)
+
+// Calculate top section heights for Assistant tab
+const ASSISTANT_MIN_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_ASSISTANT_MAX - HANDLE_HEIGHT;  // Smallest top (largest bottom)
+const ASSISTANT_MAX_TOP_SECTION_HEIGHT = SCREEN_HEIGHT - BOTTOM_ASSISTANT_MIN - HANDLE_HEIGHT;  // Largest top (smallest bottom)
 
 const ANIMATION_CONFIG = {
   damping: 30,
@@ -53,205 +74,242 @@ export default function ResizableSplitView({
   activeTab = 'Explore' // Current active tab to determine valid snap points
 }) {
   const insets = useSafeAreaInsets();
-  const topSectionHeight = useSharedValue(MAX_TOP_SECTION_HEIGHT);
+  
+  // Create shared value for activeTab to use in worklets
+  const activeTabShared = useSharedValue(activeTab);
+  
+  // Update activeTabShared when activeTab prop changes
+  React.useEffect(() => {
+    activeTabShared.value = activeTab;
+  }, [activeTab, activeTabShared]);
+  
+  // Calculate initial top section height based on bottomHeightSharedValue and activeTab
+  // Default to MIN state (smallest bottom)
+  const getInitialTopHeight = () => {
+    if (bottomHeightSharedValue) {
+      const currentBottomHeight = bottomHeightSharedValue.value ?? BOTTOM_EXPLORE_MIN;
+      const initialTopHeight = SCREEN_HEIGHT - currentBottomHeight - HANDLE_HEIGHT;
+      
+      // Determine min/max based on active tab
+      let minTopHeight, maxTopHeight;
+      if (activeTab === 'Services') {
+        minTopHeight = SERVICE_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = SERVICE_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Pay') {
+        minTopHeight = PAY_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = PAY_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Worlds') {
+        minTopHeight = WORLDS_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = WORLDS_MAX_TOP_SECTION_HEIGHT;
+      } else {
+        minTopHeight = EXPLORE_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = EXPLORE_MAX_TOP_SECTION_HEIGHT;
+      }
+      
+      return Math.max(minTopHeight, Math.min(maxTopHeight, initialTopHeight));
+    }
+      if (activeTab === 'Services') {
+        return SERVICE_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Pay') {
+        return PAY_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Worlds') {
+        return WORLDS_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Assistant') {
+        return ASSISTANT_MAX_TOP_SECTION_HEIGHT;
+      }
+      return EXPLORE_MAX_TOP_SECTION_HEIGHT;
+  };
+  
+  const topSectionHeight = useSharedValue(getInitialTopHeight());
   const isDragging = useSharedValue(false);
   const startY = useSharedValue(0);
   
-  // Shared values for smooth InteractiveLine transitions
-  const interactiveLineHeight = useSharedValue(6);
-  const interactiveLineWidth = useSharedValue(40);
-  const interactiveLinePaddingH = useSharedValue(0);
-  const interactiveLinePaddingV = useSharedValue(0);
-  const textWidth = useSharedValue(0);
-  const hasText = useSharedValue(false); // Track if text exists (accessible in worklets)
+  // State to control text visibility based on bottom height
+  const [displayText, setDisplayText] = useState('');
+  const interactiveTextShared = useSharedValue(interactiveText);
   
-  // Update hasText shared value when interactiveText prop changes
+  // Keep shared value in sync with prop
   React.useEffect(() => {
-    const hasTextValue = !!interactiveText;
-    hasText.value = hasTextValue;
-    
-    if (!hasTextValue) {
-      // Clear text width when no text
-      textWidth.value = 0;
-    } else {
-      // Reset to 0 to force re-measurement when text appears or changes
-      // This ensures onLayout will fire again and measure the new text
-      textWidth.value = 0;
-    }
-  }, [interactiveText, hasText, textWidth]);
-
-  // Handle external bottom height changes (e.g., from Assistant mode, keyboard)
-  React.useEffect(() => {
-    if (externalBottomHeight !== null) {
-      const newTopHeight = SCREEN_HEIGHT - HANDLE_HEIGHT - externalBottomHeight;
-      // Allow top section to shrink for keyboard, but not go negative
-      const clampedTopHeight = Math.max(0, Math.min(MAX_TOP_SECTION_HEIGHT, newTopHeight));
-      topSectionHeight.value = withTiming(clampedTopHeight, {
-        duration: 300,
-      });
-    }
-  }, [externalBottomHeight, topSectionHeight]);
+    interactiveTextShared.value = interactiveText;
+  }, [interactiveText, interactiveTextShared]);
   
-  // Measure text width when it's laid out - measure the actual text content width
-  const handleTextLayout = React.useCallback((event) => {
-    const { width } = event.nativeEvent.layout;
-    // Only update if we get a reasonable width (not full screen) and we have text
-    if (width > 0 && width < 500 && interactiveText) {
-      // Store the measured text width (this is the text content width, not including padding)
-      // Force update even if it seems the same - this handles text reappearing
-      const previousWidth = textWidth.value;
-      textWidth.value = width;
-      
-      // If width changed or was 0 (text just appeared), trigger immediate update
-      if (previousWidth === 0 || Math.abs(previousWidth - width) > 0.5) {
-        // Force the reaction to trigger by setting a flag
-        // The useAnimatedReaction will pick this up
-      }
-    }
-  }, [textWidth, interactiveText]);
-
-  // Consolidated logic: Watch height, text state, and measured width to determine size responsively
+  // Sync topSectionHeight with bottomHeightSharedValue - chain them together
+  // When bottomHeightSharedValue changes (from ContextBar), update topSectionHeight accordingly
   useAnimatedReaction(
     () => {
       'worklet';
-      const height = bottomHeightSharedValue?.value ?? BOTTOM_EXPLORE_DEFAULT;
-      const showText = (height > BOTTOM_EXPLORE_DEFAULT && height <= BOTTOM_EXPLORE_MIN);
-      return { 
-        height, 
-        showText, 
-        textWidth: textWidth.value, 
-        hasText: hasText.value 
-      };
+      if (!bottomHeightSharedValue) return null;
+      return bottomHeightSharedValue.value;
+    },
+    (currentBottomHeight, previousBottomHeight) => {
+      'worklet';
+      // Skip if dragging (let gesture handle it) or if values haven't changed
+      if (isDragging.value) return;
+      if (previousBottomHeight !== null && Math.abs(currentBottomHeight - previousBottomHeight) < 1) return;
+      
+      // Calculate corresponding top section height
+      const newTopHeight = SCREEN_HEIGHT - currentBottomHeight - HANDLE_HEIGHT;
+      
+      // Determine min/max based on active tab
+      if (!activeTabShared) {
+        return;
+      }
+      const currentTab = activeTabShared.value ?? 'Explore';
+      let minTopHeight, maxTopHeight;
+      if (currentTab === 'Services') {
+        minTopHeight = SERVICE_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = SERVICE_MAX_TOP_SECTION_HEIGHT;
+      } else if (currentTab === 'Pay') {
+        minTopHeight = PAY_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = PAY_MAX_TOP_SECTION_HEIGHT;
+      } else if (currentTab === 'Worlds') {
+        minTopHeight = WORLDS_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = WORLDS_MAX_TOP_SECTION_HEIGHT;
+      } else if (currentTab === 'Assistant') {
+        minTopHeight = ASSISTANT_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = ASSISTANT_MAX_TOP_SECTION_HEIGHT;
+      } else {
+        minTopHeight = EXPLORE_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = EXPLORE_MAX_TOP_SECTION_HEIGHT;
+      }
+      
+      // Keyboard mode: when bottomHeight is LARGER than normal MAX
+      // This means top section should SHRINK (keyboard is open)
+      let maxBottomHeight = BOTTOM_EXPLORE_MAX;
+      if (currentTab === 'Services') {
+        maxBottomHeight = BOTTOM_SERVICE_MAX;
+      } else if (currentTab === 'Pay') {
+        maxBottomHeight = BOTTOM_PAY_MAX;
+      } else if (currentTab === 'Worlds') {
+        maxBottomHeight = BOTTOM_WORLDS_MAX;
+      } else if (currentTab === 'Assistant') {
+        maxBottomHeight = BOTTOM_ASSISTANT_MAX;
+      }
+      const isKeyboardMode = currentBottomHeight > maxBottomHeight + 10;
+      
+      // In keyboard mode, allow the top section to shrink below normal minimum
+      const minAllowedHeight = isKeyboardMode 
+        ? Math.round(SCREEN_HEIGHT * 0.3)  // Allow shrinking to 30% of screen
+        : minTopHeight;
+      
+      const clampedTopHeight = Math.max(minAllowedHeight, Math.min(maxTopHeight, newTopHeight));
+      
+      // Update topSectionHeight to match bottomHeightSharedValue
+      topSectionHeight.value = withTiming(clampedTopHeight, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease),
+      });
+    },
+    [bottomHeightSharedValue, isDragging, activeTabShared]
+  );
+  
+  // Update displayText based on bottom height and interactiveText prop
+  useAnimatedReaction(
+    () => {
+      'worklet';
+      const height = bottomHeightSharedValue?.value ?? BOTTOM_EXPLORE_MIN;
+      const text = interactiveTextShared.value;
+      return { height, text };
     },
     (current, previous) => {
       'worklet';
       // Skip if values haven't changed
       if (previous && 
-          current.height === previous.height && 
-          current.showText === previous.showText && 
-          current.textWidth === previous.textWidth &&
-          current.hasText === previous.hasText) {
+          Math.abs(current.height - previous.height) < 1 && 
+          current.text === previous.text) {
         return;
       }
       
-      const { showText, textWidth: measuredWidth, hasText: textExists } = current;
+      const { height, text } = current;
       
-      if (showText && textExists) {
-        // Expanded state WITH text: smooth transition to expanded size
-        interactiveLineHeight.value = withTiming(26, { duration: 200 });
-        // Width = textWidth + 24px (20px padding + 4px buffer) if measured
-        // If not measured yet (measuredWidth === 0), keep current width - don't shrink to 40px
-        // This prevents truncation when text reappears
-        if (measuredWidth > 0 && measuredWidth < 500) {
-          const expandedWidth = measuredWidth + 24;
-          // Always update when we have a measurement - this handles text reappearing
-          // Don't check if different - always update to ensure correct width
-          interactiveLineWidth.value = withTiming(expandedWidth, { duration: 200 });
-        }
-        // If measuredWidth is 0, don't change width - let measurement reaction handle it
-        // This prevents the main reaction from interfering when text is being measured
-        interactiveLinePaddingH.value = withTiming(10, { duration: 200 });
-        interactiveLinePaddingV.value = withTiming(6, { duration: 200 });
-      } else {
-        // Minimized state OR no text: smooth transition to pill size - ALWAYS 40px
-        interactiveLineHeight.value = withTiming(6, { duration: 200 });
-        interactiveLineWidth.value = withTiming(40, { duration: 200 });
-        interactiveLinePaddingH.value = withTiming(0, { duration: 200 });
-        interactiveLinePaddingV.value = withTiming(0, { duration: 200 });
+      // Show text in Min state OR keyboard mode
+      // ExploreMin: height between EXPLORE_MIN and EXPLORE_MAX
+      // ServiceMin: height between SERVICE_MIN and SERVICE_MAX
+      // Keyboard mode: height > MAX (larger bottom section, top shrinks)
+      if (!activeTabShared) {
+        return;
       }
-    }
-  );
-  
-  // Update width immediately when text is measured (for smooth transitions during measurement)
-  useAnimatedReaction(
-    () => {
-      'worklet';
-      return {
-        textWidth: textWidth.value,
-        height: bottomHeightSharedValue?.value ?? BOTTOM_EXPLORE_DEFAULT,
-        hasText: hasText.value,
-      };
+      const currentTab = activeTabShared.value ?? 'Explore';
+      const isExploreMin = height >= BOTTOM_EXPLORE_MIN - 10 && height < BOTTOM_EXPLORE_MAX - 10;
+      const isServiceMin = height >= BOTTOM_SERVICE_MIN - 10 && height < BOTTOM_SERVICE_MAX - 10;
+      const isPayMin = height >= BOTTOM_PAY_MIN - 10 && height < BOTTOM_PAY_MAX - 10;
+      const isWorldsMin = height >= BOTTOM_WORLDS_MIN - 10 && height < BOTTOM_WORLDS_MAX - 10;
+      const isAssistantMin = height >= BOTTOM_ASSISTANT_MIN - 10 && height < BOTTOM_ASSISTANT_MAX - 10;
+      let maxBottomHeight = BOTTOM_EXPLORE_MAX;
+      if (currentTab === 'Services') {
+        maxBottomHeight = BOTTOM_SERVICE_MAX;
+      } else if (currentTab === 'Pay') {
+        maxBottomHeight = BOTTOM_PAY_MAX;
+      } else if (currentTab === 'Worlds') {
+        maxBottomHeight = BOTTOM_WORLDS_MAX;
+      } else if (currentTab === 'Assistant') {
+        maxBottomHeight = BOTTOM_ASSISTANT_MAX;
+      }
+      const isKeyboardMode = height > maxBottomHeight + 10;
+      const shouldShowText = 
+        (currentTab === 'Explore' && (isExploreMin || isKeyboardMode)) ||
+        (currentTab === 'Services' && isServiceMin) ||
+        (currentTab === 'Pay' && isPayMin) ||
+        (currentTab === 'Worlds' && isWorldsMin) ||
+        (currentTab === 'Assistant' && isAssistantMin);
+      
+      // Determine text to display - only show if in valid state AND text is provided
+      const textToDisplay = shouldShowText && text && text.trim().length > 0 ? text : '';
+      
+      // Update state on JS thread
+      runOnJS(setDisplayText)(textToDisplay);
     },
-    (current, previous) => {
-      'worklet';
-      const { textWidth: currentWidth, height, hasText: textExists } = current;
-      const showText = (height > BOTTOM_EXPLORE_DEFAULT && height <= BOTTOM_EXPLORE_MIN);
-      
-      // Update when text is measured and we're in expanded state
-      // Also trigger when text reappears (previousWidth was 0, now has value)
-      const wasZero = previous?.textWidth === 0 || !previous;
-      const isValidMeasurement = currentWidth > 0 && currentWidth < 500;
-      
-      if (showText && textExists && isValidMeasurement) {
-        const newWidth = currentWidth + 24;
-        
-        // ALWAYS update when:
-        // 1. Text was just measured (was 0, now has value) - CRITICAL for text reappearing
-        // 2. Width is significantly different from current
-        // Remove the previous check to ensure it always updates when text reappears
-        const shouldUpdate = wasZero || !previous || Math.abs(interactiveLineWidth.value - newWidth) > 1;
-        
-        if (shouldUpdate) {
-          // Force update - this handles text reappearing after being hidden
-          interactiveLineWidth.value = withTiming(newWidth, { duration: 200 });
-        }
-      }
-    }
+    [bottomHeightSharedValue, interactiveTextShared, activeTabShared]
   );
 
-  const interactiveLineStyle = useAnimatedStyle(() => {
-    'worklet';
-    // In React Native, padding is INSIDE the width
-    // So: width = textWidth + paddingHorizontal*2 + buffer
-    // This ensures the text fits with padding on both sides
-    return {
-      height: interactiveLineHeight.value,
-      width: interactiveLineWidth.value,
-      minHeight: interactiveLineHeight.value,
-      paddingHorizontal: interactiveLinePaddingH.value,
-      paddingVertical: interactiveLinePaddingV.value,
-    };
-  });
-
-  // Animated styles for text opacity - chained to bottomHeight
-  const textOpacityStyle = useAnimatedStyle(() => {
-    'worklet';
-    if (!bottomHeightSharedValue) {
-      return { opacity: 0 };
-    }
-    
-    const height = bottomHeightSharedValue.value;
-    
-    // Hide when collapsed (<= EXPLORE_DEFAULT) OR expanded beyond EXPLORE_MIN
-    // Show with smooth fade in/out transitions
-    
-    let opacity = 0;
-    
-    if (height <= BOTTOM_EXPLORE_DEFAULT) {
-      opacity = 0;
-    } else if (height > BOTTOM_EXPLORE_DEFAULT && height <= BOTTOM_EXPLORE_MIN) {
-      // Smooth fade in from EXPLORE_DEFAULT, stay fully visible until EXPLORE_MIN
-      const fadeInRange = 20; // Fade in over 20px
+  // Handle external bottom height changes (e.g., from Assistant mode, keyboard)
+  React.useEffect(() => {
+    if (externalBottomHeight !== null) {
+      const newTopHeight = SCREEN_HEIGHT - HANDLE_HEIGHT - externalBottomHeight;
       
-      if (height < BOTTOM_EXPLORE_DEFAULT + fadeInRange) {
-        // Fade in from EXPLORE_DEFAULT
-        opacity = (height - BOTTOM_EXPLORE_DEFAULT) / fadeInRange;
+      // Determine min/max based on active tab (use prop, not shared value in JS thread)
+      let minTopHeight, maxTopHeight;
+      if (activeTab === 'Services') {
+        minTopHeight = SERVICE_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = SERVICE_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Pay') {
+        minTopHeight = PAY_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = PAY_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Worlds') {
+        minTopHeight = WORLDS_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = WORLDS_MAX_TOP_SECTION_HEIGHT;
+      } else if (activeTab === 'Assistant') {
+        minTopHeight = ASSISTANT_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = ASSISTANT_MAX_TOP_SECTION_HEIGHT;
       } else {
-        // Fully visible from EXPLORE_DEFAULT + fadeInRange to EXPLORE_MIN
-        opacity = 1;
+        minTopHeight = EXPLORE_MIN_TOP_SECTION_HEIGHT;
+        maxTopHeight = EXPLORE_MAX_TOP_SECTION_HEIGHT;
       }
-    } else {
-      // Fade out quickly after EXPLORE_MIN
-      const fadeOutRange = 20;
-      if (height <= BOTTOM_EXPLORE_MIN + fadeOutRange) {
-        opacity = 1 - (height - BOTTOM_EXPLORE_MIN) / fadeOutRange;
-      } else {
-        opacity = 0;
+      
+      // Keyboard mode: when bottomHeight is LARGER than normal MAX
+      let maxBottomHeight = BOTTOM_EXPLORE_MAX;
+      if (activeTab === 'Services') {
+        maxBottomHeight = BOTTOM_SERVICE_MAX;
+      } else if (activeTab === 'Pay') {
+        maxBottomHeight = BOTTOM_PAY_MAX;
+      } else if (activeTab === 'Worlds') {
+        maxBottomHeight = BOTTOM_WORLDS_MAX;
+      } else if (activeTab === 'Assistant') {
+        maxBottomHeight = BOTTOM_ASSISTANT_MAX;
       }
+      const isKeyboardMode = externalBottomHeight > maxBottomHeight + 10;
+      
+      // In keyboard mode, allow the top section to shrink below normal minimum
+      const minAllowedHeight = isKeyboardMode 
+        ? Math.round(SCREEN_HEIGHT * 0.3) 
+        : minTopHeight;
+      
+      const clampedTopHeight = Math.max(minAllowedHeight, Math.min(maxTopHeight, newTopHeight));
+      topSectionHeight.value = withTiming(clampedTopHeight, {
+        duration: 300,
+      });
     }
-    
-    return { opacity: Math.max(0, Math.min(1, opacity)) };
-  });
+  }, [externalBottomHeight, topSectionHeight, activeTab]);
 
 
   const panGesture = Gesture.Pan()
@@ -261,12 +319,37 @@ export default function ResizableSplitView({
       isDragging.value = true;
     })
     .onUpdate((event) => {
+      'worklet';
       // When dragging UP (negative translationY), we want to REDUCE top section (expand bottom)
       // When dragging DOWN (positive translationY), we want to INCREASE top section (minimize bottom)
       const newHeight = startY.value + event.translationY;
+      
+      // Determine min/max based on active tab
+      if (!activeTabShared) {
+        return;
+      }
+      const currentTab = activeTabShared.value ?? 'Explore';
+      let minTopHeight, maxTopHeight;
+      if (currentTab === 'Services') {
+        minTopHeight = SERVICE_MIN_TOP_SECTION_HEIGHT; // SERVICE_MAX bottom
+        maxTopHeight = SERVICE_MAX_TOP_SECTION_HEIGHT; // SERVICE_MIN bottom
+      } else if (currentTab === 'Pay') {
+        minTopHeight = PAY_MIN_TOP_SECTION_HEIGHT; // PAY_MAX bottom
+        maxTopHeight = PAY_MAX_TOP_SECTION_HEIGHT; // PAY_MIN bottom
+      } else if (currentTab === 'Worlds') {
+        minTopHeight = WORLDS_MIN_TOP_SECTION_HEIGHT; // WORLDS_MAX bottom
+        maxTopHeight = WORLDS_MAX_TOP_SECTION_HEIGHT; // WORLDS_MIN bottom
+      } else if (currentTab === 'Assistant') {
+        minTopHeight = ASSISTANT_MIN_TOP_SECTION_HEIGHT; // ASSISTANT_MAX bottom
+        maxTopHeight = ASSISTANT_MAX_TOP_SECTION_HEIGHT; // ASSISTANT_MIN bottom
+      } else {
+        minTopHeight = EXPLORE_MIN_TOP_SECTION_HEIGHT; // EXPLORE_MAX bottom
+        maxTopHeight = EXPLORE_MAX_TOP_SECTION_HEIGHT; // EXPLORE_MIN bottom
+      }
+      
       topSectionHeight.value = Math.max(
-        MIN_SECTION_HEIGHT,
-        Math.min(MAX_TOP_SECTION_HEIGHT, newHeight)
+        minTopHeight,
+        Math.min(maxTopHeight, newHeight)
       );
       // bottomHeightSharedValue is updated automatically in bottomSectionAnimatedStyle
     })
@@ -278,17 +361,19 @@ export default function ResizableSplitView({
 
       let targetHeight;
 
-      // Determine valid snap points based on active tab
+      // Determine snap points based on active tab (only 2 snap points: MIN and MAX)
+      // Note: activeTab is accessed from JS thread, not worklet
       let snapPoints;
-      if (activeTab === 'Explore') {
-        // Explore tab: 3 states - collapsed, min (6 cards), max (8 cards)
-        snapPoints = [MIN_SECTION_HEIGHT, DEFAULT_TOP_SECTION_HEIGHT, MAX_TOP_SECTION_HEIGHT];
+      if (activeTab === 'Services') {
+        snapPoints = [SERVICE_MIN_TOP_SECTION_HEIGHT, SERVICE_MAX_TOP_SECTION_HEIGHT];
+      } else if (activeTab === 'Pay') {
+        snapPoints = [PAY_MIN_TOP_SECTION_HEIGHT, PAY_MAX_TOP_SECTION_HEIGHT];
+      } else if (activeTab === 'Worlds') {
+        snapPoints = [WORLDS_MIN_TOP_SECTION_HEIGHT, WORLDS_MAX_TOP_SECTION_HEIGHT];
       } else if (activeTab === 'Assistant') {
-        // Assistant tab: fixed height, only allows collapsed state
-        snapPoints = [ASSISTANT_TOP_SECTION_HEIGHT, MAX_TOP_SECTION_HEIGHT];
+        snapPoints = [ASSISTANT_MIN_TOP_SECTION_HEIGHT, ASSISTANT_MAX_TOP_SECTION_HEIGHT];
       } else {
-        // Other tabs (Scan, Services): only collapsed state
-        snapPoints = [MAX_TOP_SECTION_HEIGHT];
+        snapPoints = [EXPLORE_MIN_TOP_SECTION_HEIGHT, EXPLORE_MAX_TOP_SECTION_HEIGHT];
       }
 
       if (Math.abs(velocity) > VELOCITY_THRESHOLD) {
@@ -339,6 +424,36 @@ export default function ResizableSplitView({
       // No padding/margin - let tab bar sit at actual bottom
     };
   });
+  
+  // Drag handle is always visible but disabled when in keyboard mode
+  // Keyboard mode: bottomHeight > MAX (larger bottom, smaller top)
+  const dragHandleAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    const bottomHeight = bottomHeightSharedValue?.value ?? BOTTOM_EXPLORE_MIN;
+    if (!activeTabShared) {
+      return {
+        opacity: 1,
+        pointerEvents: 'auto',
+      };
+    }
+    const currentTab = activeTabShared.value ?? 'Explore';
+    let maxBottomHeight = BOTTOM_EXPLORE_MAX;
+    if (currentTab === 'Services') {
+      maxBottomHeight = BOTTOM_SERVICE_MAX;
+    } else if (currentTab === 'Pay') {
+      maxBottomHeight = BOTTOM_PAY_MAX;
+    } else if (currentTab === 'Worlds') {
+      maxBottomHeight = BOTTOM_WORLDS_MAX;
+    } else if (currentTab === 'Assistant') {
+      maxBottomHeight = BOTTOM_ASSISTANT_MAX;
+    }
+    const isKeyboardMode = bottomHeight > maxBottomHeight + 10;
+    
+    return {
+      opacity: 1, // Always visible
+      pointerEvents: isKeyboardMode ? 'none' : 'auto', // Disable drag during keyboard mode
+    };
+  });
 
   return (
     <View style={styles.container}>
@@ -347,44 +462,11 @@ export default function ResizableSplitView({
         {topSection}
       </Animated.View>
 
-      {/* Interactive Line - Drag Handle */}
+      {/* Interactive Line - Drag Handle - Hidden when keyboard is open */}
       <GestureDetector gesture={panGesture}>
-        <View style={styles.dragHandleContainer}>
-          <View style={styles.interactiveLineWrapper}>
-            {/* Hidden text for accurate measurement - positioned absolutely, not constrained */}
-            {interactiveText ? (
-              <Text
-                style={[
-                  styles.interactiveLineText,
-                  {
-                    position: 'absolute',
-                    opacity: 0,
-                    zIndex: -1,
-                    left: -10000, // Move off-screen
-                  }
-                ]}
-                numberOfLines={1}
-                onLayout={handleTextLayout}
-                allowFontScaling={false}
-              >
-                {interactiveText}
-              </Text>
-            ) : null}
-            <Animated.View style={[styles.interactiveLineContainer, interactiveLineStyle]}>
-              <BlurView intensity={2} tint="light" style={styles.interactiveLine}>
-                {interactiveText ? (
-                  <Animated.Text 
-                    style={[styles.interactiveLineText, textOpacityStyle]} 
-                    numberOfLines={1}
-                    allowFontScaling={false}
-                  >
-                    {interactiveText}
-                  </Animated.Text>
-                ) : null}
-              </BlurView>
-            </Animated.View>
-          </View>
-        </View>
+        <Animated.View style={[styles.dragHandleContainer, dragHandleAnimatedStyle]}>
+          <DragComponent text={displayText} />
+        </Animated.View>
       </GestureDetector>
 
       {/* Bottom Section - Auto-adjusting */}
@@ -404,35 +486,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   dragHandleContainer: {
-    height: 40, // Increased to accommodate the taller interactive line
+    height: 40,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Sizes.dragHandlePaddingV,
-  },
-  interactiveLineWrapper: {
-    height: 36, // Increased height to prevent clipping (was 40)
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  interactiveLineContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white14,
-  },
-  interactiveLine: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  interactiveLineText: {
-    fontSize: Typography.interactiveLine.fontSize,
-    fontWeight: Typography.interactiveLine.fontWeight,
-    color: Colors.white,
-    lineHeight: Typography.interactiveLine.lineHeight,
-    textAlign: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 7, // 7px padding from top in text state
+    paddingHorizontal: 20, // Increase horizontal touch area
+    minWidth: '100%', // Ensure full width is draggable
   },
   bottomSection: {
     overflow: 'hidden',

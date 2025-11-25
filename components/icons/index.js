@@ -141,6 +141,59 @@ export const StopIcon = ({ size = 24, color = Colors.black }) => (
   </Svg>
 );
 
+// ArrowUpRight Icon - Diagonal arrow pointing up-right (for Send Money)
+export const ArrowUpRightIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M6 18L18 6M18 6H10M18 6V14" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+// Barcode Icon - Barcode pattern (for Scan QR)
+export const BarcodeIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M3 7V5C3 4.44772 3.44772 4 4 4H6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M3 17V19C3 19.5523 3.44772 20 4 20H6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M21 7V5C21 4.44772 20.5523 4 20 4H18" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M21 17V19C21 19.5523 20.5523 20 20 20H18" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M5 12H6" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M9 12H10" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M14 12H15" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M18 12H19" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M7 12H8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M11 12H13" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M16 12H17" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+// StarFour Icon - 4-pointed star (for Create New World)
+export const StarFourIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" fill={color} fillOpacity="0.5"/>
+    <Path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+// DiamondsFour Icon - Four diamonds arranged in a pattern (for Explore Templates)
+export const DiamondsFourIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M9.5 4.5L12 7L14.5 4.5L12 2L9.5 4.5Z" fill={color} fillOpacity="0.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M4.5 9.5L7 12L4.5 14.5L2 12L4.5 9.5Z" fill={color} fillOpacity="0.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M19.5 9.5L22 12L19.5 14.5L17 12L19.5 9.5Z" fill={color} fillOpacity="0.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M9.5 19.5L12 22L14.5 19.5L12 17L9.5 19.5Z" fill={color} fillOpacity="0.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+// Article Icon - Document/article icon (for Conversation History)
+export const ArticleIcon = ({ size = 24, color = Colors.white }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M14.25 3H6.75C5.50736 3 4.5 4.00736 4.5 5.25V18.75C4.5 19.9926 5.50736 21 6.75 21H17.25C18.4926 21 19.5 19.9926 19.5 18.75V8.25L14.25 3Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M14.25 3V8.25H19.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M7.5 12H16.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M7.5 15H16.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <Path d="M7.5 9H12" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
 // Export TabBar icons
 export * from './TabBarIcons';
 

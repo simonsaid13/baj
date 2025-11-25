@@ -58,9 +58,12 @@ export default function AnimatedTabs({
   let containerWidth;
   if (effectiveHeight === 12) {
     containerWidth = 32;
+  } else if (effectiveHeight >= TEXT_HIDE_THRESHOLD) {
+    // Use full width when height is at or above text hide threshold
+    containerWidth = baseContainerWidth;
   } else {
-    // Width scales from 100% at max height to ~60% at minimum height (4px)
-    const heightRatio = Math.max(effectiveHeight / MAX_HEIGHT, 0.6); // Minimum 60% width
+    // Width scales from 100% at text threshold to ~60% at minimum height (4px)
+    const heightRatio = Math.max(effectiveHeight / TEXT_HIDE_THRESHOLD, 0.6); // Minimum 60% width
     containerWidth = baseContainerWidth * heightRatio;
   }
   
@@ -78,7 +81,7 @@ export default function AnimatedTabs({
   // indicatorPosition represents the center of the tab (for centered anchor point)
   const indicatorPosition = useSharedValue(initialTabCenter);
   const indicatorWidth = useSharedValue(tabWidth);
-  const indicatorHeightAnimated = useSharedValue(minimized ? 4 : height - 8);
+  const indicatorHeightAnimated = useSharedValue(minimized ? 4 : height);
   const containerWidthAnimated = useSharedValue(containerWidth);
   const containerHeightAnimated = useSharedValue(minimized ? 12 : height + 8);
   const currentPositionRef = useRef(initialTabCenter);
@@ -91,8 +94,11 @@ export default function AnimatedTabs({
     let currentContainerWidth;
     if (effectiveHeight === 12) {
       currentContainerWidth = 32;
+    } else if (effectiveHeight >= TEXT_HIDE_THRESHOLD) {
+      // Use full width when height is at or above text hide threshold
+      currentContainerWidth = baseContainerWidth;
     } else {
-      const currentHeightRatio = Math.max(effectiveHeight / MAX_HEIGHT, 0.6);
+      const currentHeightRatio = Math.max(effectiveHeight / TEXT_HIDE_THRESHOLD, 0.6);
       currentContainerWidth = baseContainerWidth * currentHeightRatio;
     }
     const currentTabBarInnerWidth = currentContainerWidth - (containerPadding * 2);
@@ -102,7 +108,7 @@ export default function AnimatedTabs({
     // Initialize animated values
     containerWidthAnimated.value = currentContainerWidth;
     containerHeightAnimated.value = minimized ? 12 : height + 8;
-    indicatorHeightAnimated.value = minimized ? 4 : height - 8;
+    indicatorHeightAnimated.value = minimized ? 4 : height;
     
     currentPositionRef.current = tabCenter;
     prevActiveIndexRef.current = activeIndex;
@@ -245,12 +251,15 @@ export default function AnimatedTabs({
     let targetContainerWidth;
     if (effectiveHeight === 12) {
       targetContainerWidth = 32;
+    } else if (effectiveHeight >= TEXT_HIDE_THRESHOLD) {
+      // Use full width when height is at or above text hide threshold
+      targetContainerWidth = baseContainerWidth;
     } else {
-      const currentHeightRatio = Math.max(effectiveHeight / MAX_HEIGHT, 0.6);
+      const currentHeightRatio = Math.max(effectiveHeight / TEXT_HIDE_THRESHOLD, 0.6);
       targetContainerWidth = baseContainerWidth * currentHeightRatio;
     }
     const targetContainerHeight = minimized ? 12 : height + 8;
-    const targetIndicatorHeight = minimized ? 4 : height - 8;
+    const targetIndicatorHeight = minimized ? 4 : height;
     
     // Smooth transitions for all dimensions
     containerWidthAnimated.value = withTiming(targetContainerWidth, {
@@ -275,8 +284,11 @@ export default function AnimatedTabs({
     let targetContainerWidth;
     if (effectiveHeight === 12) {
       targetContainerWidth = 32;
+    } else if (effectiveHeight >= TEXT_HIDE_THRESHOLD) {
+      // Use full width when height is at or above text hide threshold
+      targetContainerWidth = baseContainerWidth;
     } else {
-      const currentHeightRatio = Math.max(effectiveHeight / MAX_HEIGHT, 0.6);
+      const currentHeightRatio = Math.max(effectiveHeight / TEXT_HIDE_THRESHOLD, 0.6);
       targetContainerWidth = baseContainerWidth * currentHeightRatio;
     }
     
@@ -314,8 +326,11 @@ export default function AnimatedTabs({
       let currentContainerWidth;
       if (effectiveHeight === 12) {
         currentContainerWidth = 32;
+      } else if (effectiveHeight >= TEXT_HIDE_THRESHOLD) {
+        // Use full width when height is at or above text hide threshold
+        currentContainerWidth = baseContainerWidth;
       } else {
-        const currentHeightRatio = Math.max(effectiveHeight / MAX_HEIGHT, 0.6);
+        const currentHeightRatio = Math.max(effectiveHeight / TEXT_HIDE_THRESHOLD, 0.6);
         currentContainerWidth = baseContainerWidth * currentHeightRatio;
       }
       const currentTabBarInnerWidth = currentContainerWidth - (containerPadding * 2);
@@ -355,14 +370,14 @@ export default function AnimatedTabs({
     };
   });
 
-  // Container opacity and width animation
+  // Container opacity and height animation (width fills parent)
   const containerStyle = useAnimatedStyle(() => {
     // If height is 0, component completely disappears
     const isHidden = height === 0;
     return {
       opacity: isHidden ? 0 : opacity,
       height: containerHeightAnimated.value,
-      width: containerWidthAnimated.value,
+      // Width fills parent - don't set explicit width here
     };
   });
 
@@ -376,10 +391,11 @@ export default function AnimatedTabs({
     }
   };
 
-  // Animated style for tab bar container width
+  // Animated style for tab bar container width - centered alignment
   const tabBarContainerStyle = useAnimatedStyle(() => {
     return {
       width: containerWidthAnimated.value,
+      alignSelf: 'center', // Center the container when width animates
     };
   });
 
@@ -431,9 +447,9 @@ export default function AnimatedTabs({
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%', // Fill parent width
     paddingHorizontal: Spacing.xxl,
     justifyContent: 'center',
-    alignSelf: 'center', // Center the component when width decreases
   },
   tabBarContainer: {
     flexDirection: 'row',

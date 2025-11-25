@@ -13,6 +13,7 @@ import AnimatedTabsDetailScreen from './screens/AnimatedTabsDetailScreen';
 import InputBarDetailScreen from './screens/InputBarDetailScreen';
 import ButtonComponentsDetailScreen from './screens/ButtonComponentsDetailScreen';
 import DragComponentDetailScreen from './screens/DragComponentDetailScreen';
+import ContextBarDetailScreen from './screens/ContextBarDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,7 @@ export default function App() {
             <Stack.Screen name="AnimatedTabsDetail" component={AnimatedTabsDetailScreen} />
             <Stack.Screen name="InputBarDetail" component={InputBarDetailScreen} />
             <Stack.Screen name="DragComponentDetail" component={DragComponentDetailScreen} />
+            <Stack.Screen name="ContextBarDetail" component={ContextBarDetailScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>
