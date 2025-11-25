@@ -13,6 +13,12 @@ import { Colors, Typography, Spacing, BorderRadius } from '../constants/tokens';
 // Component registry - add new components here
 const COMPONENTS = [
   {
+    id: 'buttons',
+    name: 'Button Components',
+    description: 'ButtonGrey and ButtonBar with smooth animations and haptic feedback',
+    category: 'Buttons',
+  },
+  {
     id: 'tabbar',
     name: 'TabBar',
     description: 'Navigation bar with 5 tabs (Explore, Services, Pay, Worlds, Assistant)',
@@ -32,7 +38,9 @@ export default function DesignSystemScreen({ navigation }) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     // Navigate to specific component detail page
-    if (component.id === 'tabbar') {
+    if (component.id === 'buttons') {
+      navigation.navigate('ButtonComponentsDetail');
+    } else if (component.id === 'tabbar') {
       navigation.navigate('TabBarDetail');
     } else if (component.id === 'inputbar') {
       navigation.navigate('InputBarDetail');

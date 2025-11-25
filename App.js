@@ -10,6 +10,7 @@ import DesignSystemScreen from './screens/DesignSystemScreen';
 import ComponentDetailScreen from './screens/ComponentDetailScreen';
 import TabBarDetailScreen from './screens/TabBarDetailScreen';
 import InputBarDetailScreen from './screens/InputBarDetailScreen';
+import ButtonComponentsDetailScreen from './screens/ButtonComponentsDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -28,6 +29,7 @@ export default function App() {
             <Stack.Screen name="Explore" component={ExploreScreen} />
             <Stack.Screen name="DesignSystem" component={DesignSystemScreen} />
             <Stack.Screen name="ComponentDetail" component={ComponentDetailScreen} />
+            <Stack.Screen name="ButtonComponentsDetail" component={ButtonComponentsDetailScreen} />
             <Stack.Screen name="TabBarDetail" component={TabBarDetailScreen} />
             <Stack.Screen name="InputBarDetail" component={InputBarDetailScreen} />
           </Stack.Navigator>
