@@ -1,11 +1,11 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { useSharedValue } from 'react-native-reanimated';
 import ResizableSplitView from '../components/ResizableSplitView';
 import BottomContainer from '../components/BottomContainer';
-import { Colors, BorderRadius } from '../constants/tokens';
+import { Colors, BorderRadius, Spacing } from '../constants/tokens';
 
 import ExploreContent from '../components/ExploreContent';
 
@@ -16,13 +16,21 @@ const ASSISTANT_HEIGHT = 220;     // Assistant mode: 3 action buttons
 const EXPLORE_MIN = 320;          // Explore min: 6 action cards (2 rows)
 const EXPLORE_MAX = 400;          // Explore max: 8 action cards (3 rows)
 
-export default function ExploreScreen() {
+export default function ExploreScreen({ navigation }) {
   // Initialize to EXPLORE_DEFAULT (collapsed state)
   const bottomHeightSharedValue = useSharedValue(EXPLORE_DEFAULT);
   const [bottomHeight, setBottomHeight] = React.useState(EXPLORE_DEFAULT);
   const [externalBottomHeight, setExternalBottomHeight] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('Explore');
   const prevHeightRef = React.useRef(EXPLORE_DEFAULT);
+  
+  // Handle Design System button press
+  const handleDesignSystemPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (navigation) {
+      navigation.navigate('DesignSystem');
+    }
+  }, [navigation]);
   
   // Determine interactive text based on state and active tab
   const getInteractiveText = React.useCallback((height, currentTab) => {
@@ -77,6 +85,14 @@ export default function ExploreScreen() {
       <BlurView intensity={20} tint="light" style={styles.topSectionBlur}>
         <View style={styles.pageContainer}>
           <ExploreContent />
+          {/* Floating Design System Button */}
+          <TouchableOpacity
+            style={styles.designSystemButton}
+            onPress={handleDesignSystemPress}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.designSystemButtonText}>DS</Text>
+          </TouchableOpacity>
         </View>
       </BlurView>
     </View>
@@ -131,6 +147,31 @@ const styles = StyleSheet.create({
   pageContainer: {
     flex: 1,
     backgroundColor: Colors.backgroundWhite,
+    position: 'relative',
+  },
+  designSystemButton: {
+    position: 'absolute',
+    top: 60,
+    right: Spacing.xxl,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  designSystemButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.black,
   },
 });
 

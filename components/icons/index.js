@@ -127,3 +127,20 @@ export const KeyboardIcon = ({ size = 24, color = Colors.white }) => (
   </Svg>
 );
 
+// Send Icon - Right arrow
+export const SendIcon = ({ size = 24, color = Colors.black }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M5 12H19M19 12L12 5M19 12L12 19" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </Svg>
+);
+
+// Stop Icon - Square with rounded corners (from TabBar)
+export const StopIcon = ({ size = 24, color = Colors.black }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M18.4781 4.125H5.52188C4.7504 4.125 4.125 4.7504 4.125 5.52188V18.4781C4.125 19.2496 4.7504 19.875 5.52188 19.875H18.4781C19.2496 19.875 19.875 19.2496 19.875 18.4781V5.52188C19.875 4.7504 19.2496 4.125 18.4781 4.125Z" fill={color}/>
+  </Svg>
+);
+
+// Export TabBar icons
+export * from './TabBarIcons';
+

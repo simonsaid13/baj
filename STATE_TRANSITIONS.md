@@ -186,3 +186,4 @@ All action cards use 24px icons with white color:
 - [ ] Assistant icon shows gradient glow
 - [ ] Explore tab shows active state (white bg)
 
+

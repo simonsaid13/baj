@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -231,6 +231,7 @@ export default function BottomContainer({
   // State management - track which tab is currently active
   const [currentTab, setCurrentTab] = useState(activeTab);
   const [inputMode, setInputMode] = useState(false);
+  const [audioMode, setAudioMode] = useState(false);
   const [inputText, setInputText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const inputRef = useRef(null);
@@ -361,6 +362,7 @@ export default function BottomContainer({
         if (inputMode) {
           setTimeout(() => {
             setInputMode(false);
+            setInputText(''); // Clear input text
           }, 100);
         }
       }
@@ -448,6 +450,8 @@ export default function BottomContainer({
     // Switch to new tab
     setCurrentTab(tabName);
     setInputMode(false);
+    setAudioMode(false);
+    setInputText(''); // Clear input text when switching tabs
     
     // Notify parent
     if (onTabChange) {
@@ -456,16 +460,28 @@ export default function BottomContainer({
   };
 
   // Handle Type button press - show input field
-  const handleTypePress = () => {
+  const handleTypePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setInputMode(true);
+    setAudioMode(false);
     // Focus input after state update
     setTimeout(() => {
       if (inputRef.current) {
         inputRef.current.focus();
       }
     }, 100);
-  };
+  }, []);
+
+  // Handle Speak button press - switch to audio mode
+  const handleSpeakPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAudioMode(prev => !prev);
+    setInputMode(false);
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+    Keyboard.dismiss();
+  }, []);
 
   // Handle input submission
   const handleSubmitInput = () => {
@@ -489,12 +505,12 @@ export default function BottomContainer({
     { icon: FirstAidIcon, label: 'Bajaj Health' },
   ];
 
-  // Assistant mode actions
-  const assistantActions = [
+  // Assistant mode actions - memoized to prevent recreation on every render
+  const assistantActions = useMemo(() => [
     { icon: VideoCameraIcon, label: 'Video Chat' },
-    { icon: MicrophoneIcon, label: 'Speak' },
+    { icon: MicrophoneIcon, label: 'Speak', onPress: handleSpeakPress },
     { icon: KeyboardIcon, label: 'Type', onPress: handleTypePress },
-  ];
+  ], [handleSpeakPress, handleTypePress]);
 
   // Calculate animation progress for first 2 rows using derived value
   const firstTwoRowsProgress = useDerivedValue(() => {
@@ -804,14 +820,43 @@ export default function BottomContainer({
         )}
 
         {currentTab === 'Assistant' && (
-          // Assistant Mode - Show 3 buttons or input field
-          inputMode ? (
-            // Input Field Mode
+          <View style={styles.assistantModesContainer}>
+            {/* Audio Mode */}
             <Animated.View style={[
               styles.inputContainer, 
               assistantContainerAnimatedStyle,
-              { marginTop: 0 }
-            ]}>
+              { 
+                marginTop: 0,
+                position: 'absolute',
+                width: '100%',
+                opacity: audioMode ? 1 : 0,
+                zIndex: audioMode ? 1 : -1,
+              }
+            ]} pointerEvents={audioMode ? 'auto' : 'none'}>
+              <View style={styles.audioModeContainer}>
+                <Text style={styles.audioModeText}>Listening...</Text>
+                <TouchableOpacity 
+                  style={styles.stopAudioButton}
+                  onPress={handleSpeakPress}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.stopAudioButtonText}>Stop</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+            
+            {/* Input Field Mode */}
+            <Animated.View style={[
+              styles.inputContainer, 
+              assistantContainerAnimatedStyle,
+              { 
+                marginTop: 0,
+                position: 'absolute',
+                width: '100%',
+                opacity: (!audioMode && inputMode) ? 1 : 0,
+                zIndex: (!audioMode && inputMode) ? 1 : -1,
+              }
+            ]} pointerEvents={(!audioMode && inputMode) ? 'auto' : 'none'}>
               <View style={styles.inputWrapper}>
                 <TextInput
                   ref={inputRef}
@@ -823,6 +868,7 @@ export default function BottomContainer({
                   returnKeyType="send"
                   onSubmitEditing={handleSubmitInput}
                   multiline={false}
+                  editable={true}
                 />
                 <TouchableOpacity 
                   style={styles.submitButton}
@@ -833,9 +879,18 @@ export default function BottomContainer({
                 </TouchableOpacity>
               </View>
             </Animated.View>
-          ) : (
-            // Assistant Action Buttons
-            <Animated.View style={[styles.assistantActionsContainer, assistantContainerAnimatedStyle]}>
+            
+            {/* Assistant Action Buttons - Always rendered to keep hooks stable */}
+            <Animated.View style={[
+              styles.assistantActionsContainer, 
+              assistantContainerAnimatedStyle,
+              {
+                position: 'absolute',
+                width: '100%',
+                opacity: (!audioMode && !inputMode) ? 1 : 0,
+                zIndex: (!audioMode && !inputMode) ? 1 : -1,
+              }
+            ]} pointerEvents={(!audioMode && !inputMode) ? 'auto' : 'none'}>
               <View style={styles.actionsRow}>
                 {assistantActions.map((action, index) => (
                   <ActionCard
@@ -849,7 +904,7 @@ export default function BottomContainer({
                 ))}
               </View>
             </Animated.View>
-          )
+          </View>
         )}
 
         {currentTab === 'Scan' && (
@@ -1131,6 +1186,11 @@ const styles = StyleSheet.create({
     opacity: Typography.tabBarLabelActive.opacity,
     color: Colors.white,
   },
+  assistantModesContainer: {
+    position: 'relative',
+    width: Sizes.actionsContainerWidth, // 361px
+    minHeight: Sizes.actionCardHeight, // Ensure container has height
+  },
   assistantActionsContainer: {
     width: Sizes.actionsContainerWidth, // 361px
   },
@@ -1179,6 +1239,36 @@ const styles = StyleSheet.create({
     fontWeight: Typography.actionCardLabel.fontWeight,
     color: Colors.white,
     opacity: 0.5,
+  },
+  audioModeContainer: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white10,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+    minHeight: Sizes.actionCardHeight,
+  },
+  audioModeText: {
+    flex: 1,
+    fontSize: Typography.actionCardLabel.fontSize,
+    fontWeight: Typography.actionCardLabel.fontWeight,
+    color: Colors.white,
+    textAlign: 'center',
+  },
+  stopAudioButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.card,
+  },
+  stopAudioButtonText: {
+    fontSize: Typography.actionCardLabel.fontSize,
+    fontWeight: '600',
+    color: Colors.black,
   },
 });
 
