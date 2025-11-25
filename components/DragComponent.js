@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/tokens';
+import * as Haptics from 'expo-haptics';
 
 /**
  * DragComponent - A draggable component that morphs between two states
@@ -17,11 +18,13 @@ import { Colors, Spacing, BorderRadius, Typography } from '../constants/tokens';
  * - With text state: Expands to fit text content with padding
  * - Smooth transitions between states using spring animations
  * - Backdrop blur effect matching design system
+ * - Tap to expand when text is present
  * 
  * @param {string} text - Text content to display (empty string for no-text state)
+ * @param {Function} onPress - Handler called when component is tapped (only active when text is present)
  * @param {Object} style - Additional container styles
  */
-export default function DragComponent({ text = '', style }) {
+export default function DragComponent({ text = '', onPress, style }) {
   // Dimensions for no-text state (hardcoded as per requirements)
   const NO_TEXT_HEIGHT = 6;
   const NO_TEXT_WIDTH = 40;
@@ -144,29 +147,49 @@ export default function DragComponent({ text = '', style }) {
     };
   });
   
+  // Handle press with haptic feedback
+  const handlePress = () => {
+    if (hasText && onPress) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress();
+    }
+  };
+  
   return (
     <Animated.View style={[styles.container, containerStyle, style]}>
-      <Animated.View style={[styles.interactiveLineWrapper, interactiveLineStyle]}>
-        <BlurView
-          intensity={2}
-          tint="light"
-          style={styles.blurContainer}
-        >
-          <Animated.View style={[styles.textContainer, textStyle]}>
-            {hasText && (
-              <Text style={styles.text} numberOfLines={1}>
-                {text}
-              </Text>
-            )}
-          </Animated.View>
-        </BlurView>
-      </Animated.View>
+      <TouchableOpacity
+        onPress={handlePress}
+        disabled={!hasText || !onPress}
+        activeOpacity={0.8}
+        style={styles.touchable}
+      >
+        <Animated.View style={[styles.interactiveLineWrapper, interactiveLineStyle]}>
+          <BlurView
+            intensity={2}
+            tint="light"
+            style={styles.blurContainer}
+          >
+            <Animated.View style={[styles.textContainer, textStyle]}>
+              {hasText && (
+                <Text style={styles.text} numberOfLines={1}>
+                  {text}
+                </Text>
+              )}
+            </Animated.View>
+          </BlurView>
+        </Animated.View>
+      </TouchableOpacity>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  touchable: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },

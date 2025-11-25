@@ -666,34 +666,11 @@ export default function BottomContainer({
     };
   });
 
-  // Animated style for AIGlow container - keeps it fixed at screen position
-  // When container is at EXPLORE_DEFAULT, AIGlow is at top: -60 (moved 40px up from -20)
-  // As container expands, we adjust top to keep AIGlow at same screen position
-  const aiGlowContainerStyle = useAnimatedStyle(() => {
-    'worklet';
-    if (!bottomHeightSharedValue) {
-      return {
-        top: -60, // Default position (40px higher than before)
-      };
-    }
-    
-    try {
-      const currentHeight = bottomHeightSharedValue.value ?? EXPLORE_DEFAULT;
-      // Calculate offset: when height increases, container top moves up
-      // So we need to move AIGlow down by the same amount to keep it fixed
-      const heightDelta = currentHeight - EXPLORE_DEFAULT;
-      const topPosition = -60 + heightDelta; // Starting 40px higher
-      
-      return {
-        top: topPosition,
-      };
-    } catch (error) {
-      // Fallback to default position if there's an error
-      return {
-        top: -60,
-      };
-    }
-  });
+  // Fixed style for AIGlow container - stays at constant screen position
+  // AIGlow should always be positioned at the same place, only polygons scale
+  const aiGlowContainerStyle = {
+    top: -60, // Fixed position (40px higher than before)
+  };
 
   // Calculate scale based on container height for AIGlow polygons
   // Scale from 1.0 (EXPLORE_DEFAULT) to 1.6 (EXPLORE_MAX)

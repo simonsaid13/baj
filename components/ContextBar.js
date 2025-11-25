@@ -56,8 +56,8 @@ const ASSISTANT_MIN = 220;        // Assistant min: InputBar + TabBar + spacing 
 const ASSISTANT_MAX = 312;        // Assistant max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (ASSISTANT_MIN + 92px)
 const HANDLE_HEIGHT = 40;         // Drag handle height (MUST match ResizableSplitView.js)
 
-// Keyboard mode: Top section should shrink to ~45% of screen height
-// This makes the white page area smaller when typing, matching the Figma design
+// Keyboard mode: Top section should shrink to leave space for keyboard + 12px + input + 12px
+// This creates the structure: keyboard - 12px - input - 12px - top part of screen
 const KEYBOARD_TOP_SECTION_HEIGHT = Math.round(SCREEN_HEIGHT * 0.45);
 const KEYBOARD_MODE_BOTTOM_HEIGHT = SCREEN_HEIGHT - KEYBOARD_TOP_SECTION_HEIGHT - HANDLE_HEIGHT;
 
@@ -119,65 +119,8 @@ export default function ContextBar({
     }
   }, [bottomHeightSharedValue, currentTab]);
 
-  // Handle height changes when switching tabs - always start at MIN
-  useEffect(() => {
-    if (currentTab === 'Explore') {
-      // Start at EXPLORE_MIN
-      if (bottomHeightSharedValue) {
-        bottomHeightSharedValue.value = withTiming(EXPLORE_MIN, {
-          duration: 300,
-          easing: Easing.inOut(Easing.ease),
-        });
-      }
-      if (onHeightChange) {
-        onHeightChange(EXPLORE_MIN);
-      }
-    } else if (currentTab === 'Services') {
-      // Start at SERVICE_MIN
-      if (bottomHeightSharedValue) {
-        bottomHeightSharedValue.value = withTiming(SERVICE_MIN, {
-          duration: 300,
-          easing: Easing.inOut(Easing.ease),
-        });
-      }
-      if (onHeightChange) {
-        onHeightChange(SERVICE_MIN);
-      }
-    } else if (currentTab === 'Pay') {
-      // Start at PAY_MIN
-      if (bottomHeightSharedValue) {
-        bottomHeightSharedValue.value = withTiming(PAY_MIN, {
-          duration: 300,
-          easing: Easing.inOut(Easing.ease),
-        });
-      }
-      if (onHeightChange) {
-        onHeightChange(PAY_MIN);
-      }
-    } else if (currentTab === 'Worlds') {
-      // Start at WORLDS_MIN
-      if (bottomHeightSharedValue) {
-        bottomHeightSharedValue.value = withTiming(WORLDS_MIN, {
-          duration: 300,
-          easing: Easing.inOut(Easing.ease),
-        });
-      }
-      if (onHeightChange) {
-        onHeightChange(WORLDS_MIN);
-      }
-    } else if (currentTab === 'Assistant') {
-      // Start at ASSISTANT_MIN
-      if (bottomHeightSharedValue) {
-        bottomHeightSharedValue.value = withTiming(ASSISTANT_MIN, {
-          duration: 300,
-          easing: Easing.inOut(Easing.ease),
-        });
-      }
-      if (onHeightChange) {
-        onHeightChange(ASSISTANT_MIN);
-      }
-    }
-  }, [currentTab, bottomHeightSharedValue, onHeightChange]);
+  // NOTE: Height on tab change is now fully controlled by ResizableSplitView + ExploreScreen.
+  // ContextBar reads bottomHeightSharedValue but no longer forces it to MIN on tab switch.
 
   // Listen to keyboard events and adjust container height with smooth animation
   useEffect(() => {
@@ -260,21 +203,22 @@ export default function ContextBar({
   }, [bottomHeightSharedValue, onHeightChange, keyboardHeightAnimated]);
   
   // Animated style for InputBar when keyboard is open
-  // Bottom padding = keyboard height + 20px from bottom of screen
+  // Bottom padding = keyboard height + 12px from bottom of screen
+  // Structure: keyboard - 12px - input - 12px - top part of screen
   const inputBarKeyboardStyle = useAnimatedStyle(() => {
     'worklet';
     const kbHeight = keyboardHeightAnimated.value;
-    
+
     if (kbHeight > 0) {
       return {
         position: 'absolute',
-        bottom: kbHeight + 20,
+        bottom: kbHeight + 12,
         left: 0,
         right: 0,
         zIndex: 10,
       };
     }
-    
+
     return {};
   });
 
@@ -912,28 +856,28 @@ export default function ContextBar({
     <View style={styles.container}>
       {/* AIGlow Layer - Absolute positioned at top, fixed screen position */}
       <Animated.View style={[styles.aiGlowContainer, aiGlowContainerStyle]} pointerEvents="none">
-        <Animated.View style={[styles.polygonWrapper, polygon1Style]}>
+        <Animated.View style={[styles.polygonWrapper, styles.polygon1Position, polygon1Style]}>
           <Image 
             source={require('../assets/png/Polygon 1.png')} 
             style={styles.polygonImage}
             resizeMode="cover"
           />
         </Animated.View>
-        <Animated.View style={[styles.polygonWrapper, polygon2Style]}>
+        <Animated.View style={[styles.polygonWrapper, styles.polygon2Position, polygon2Style]}>
           <Image 
             source={require('../assets/png/Polygon 2.png')} 
             style={styles.polygonImage}
             resizeMode="cover"
           />
         </Animated.View>
-        <Animated.View style={[styles.polygonWrapper, polygon3Style]}>
+        <Animated.View style={[styles.polygonWrapper, styles.polygon3Position, polygon3Style]}>
           <Image 
             source={require('../assets/png/Polygon 3.png')} 
             style={styles.polygonImage}
             resizeMode="cover"
           />
         </Animated.View>
-        <Animated.View style={[styles.polygonWrapper, polygon4Style]}>
+        <Animated.View style={[styles.polygonWrapper, styles.polygon4Position, polygon4Style]}>
           <Image 
             source={require('../assets/png/Polygon 4.png')} 
             style={styles.polygonImage}
@@ -1133,19 +1077,40 @@ const styles = StyleSheet.create({
     top: 20, // Moved 80px down (was -60)
     left: -100,
     right: -100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     height: 350,
     zIndex: 0,
     overflow: 'visible',
     pointerEvents: 'none',
   },
   polygonWrapper: {
+    position: 'absolute',
     width: 250,
     height: 250,
-    marginHorizontal: -80,
     overflow: 'visible',
+  },
+  polygon1Position: {
+    left: '50%',
+    top: '50%',
+    marginLeft: -20, // -125 (center) - 40 (offset for overlap)
+    marginTop: -125, // Half of height (250/2)
+  },
+  polygon2Position: {
+    left: '50%',
+    top: '50%',
+    marginLeft: -105, // -125 (center) - 20 (slight offset)
+    marginTop: -125,
+  },
+  polygon3Position: {
+    left: '50%',
+    top: '50%',
+    marginLeft: -210, // Centered (half of width)
+    marginTop: -125,
+  },
+  polygon4Position: {
+    left: '50%',
+    top: '50%',
+    marginLeft: -320, // -125 (center) + 40 (offset)
+    marginTop: -125,
   },
   polygonImage: {
     width: '100%',

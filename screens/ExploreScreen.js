@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { useSharedValue } from 'react-native-reanimated';
+import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import ResizableSplitView from '../components/ResizableSplitView';
 import ContextBar from '../components/ContextBar';
 import { Colors, BorderRadius, Spacing } from '../constants/tokens';
@@ -119,9 +119,40 @@ export default function ExploreScreen({ navigation }) {
   }, []);
 
   const handleTabChange = useCallback((tabName) => {
+    const previousTab = activeTab;
+
+    console.log('Tab change from', previousTab, 'to', tabName);
+
+    // Always switch to MIN state for the new tab, regardless of current state
+    // This ensures consistent behavior - new tabs always start minimized
     setActiveTab(tabName);
-    console.log('Tab changed to:', tabName);
-  }, []);
+
+    let newMinHeight;
+    if (tabName === 'Services') {
+      newMinHeight = SERVICE_MIN;
+    } else if (tabName === 'Pay') {
+      newMinHeight = PAY_MIN;
+    } else if (tabName === 'Worlds') {
+      newMinHeight = WORLDS_MIN;
+    } else if (tabName === 'Assistant') {
+      newMinHeight = ASSISTANT_MIN;
+    } else {
+      newMinHeight = EXPLORE_MIN;
+    }
+
+    console.log('Switching tab - setting to MIN height:', newMinHeight);
+
+    if (bottomHeightSharedValue) {
+      bottomHeightSharedValue.value = withTiming(newMinHeight, {
+        duration: 300,
+        easing: Easing.inOut(Easing.ease),
+      });
+    }
+
+    setExternalBottomHeight(newMinHeight);
+    setBottomHeight(newMinHeight);
+    prevHeightRef.current = newMinHeight;
+  }, [activeTab, bottomHeight, bottomHeightSharedValue]);
 
   const handleInteractiveTextChange = useCallback((text) => {
     setInteractiveText(text);
