@@ -14,6 +14,11 @@ import InputBarDetailScreen from './screens/InputBarDetailScreen';
 import ButtonComponentsDetailScreen from './screens/ButtonComponentsDetailScreen';
 import DragComponentDetailScreen from './screens/DragComponentDetailScreen';
 import ContextBarDetailScreen from './screens/ContextBarDetailScreen';
+import CardDetailScreen from './screens/CardDetailScreen';
+import LoanDetailScreen from './screens/LoanDetailScreen';
+import ProductDetailScreen from './screens/ProductDetailScreen';
+import TransactionDetailScreen from './screens/TransactionDetailScreen';
+import ServiceDetailScreen from './screens/ServiceDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -38,6 +43,11 @@ export default function App() {
             <Stack.Screen name="InputBarDetail" component={InputBarDetailScreen} />
             <Stack.Screen name="DragComponentDetail" component={DragComponentDetailScreen} />
             <Stack.Screen name="ContextBarDetail" component={ContextBarDetailScreen} />
+            <Stack.Screen name="CardDetail" component={CardDetailScreen} />
+            <Stack.Screen name="LoanDetail" component={LoanDetailScreen} />
+            <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+            <Stack.Screen name="TransactionDetail" component={TransactionDetailScreen} />
+            <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
           </Stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>

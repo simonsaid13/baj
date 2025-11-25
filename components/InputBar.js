@@ -560,6 +560,7 @@ export default function InputBar({
                 placeholderTextColor="transparent"
                 editable={!isGenerating && !forceState}
                 pointerEvents={forceState ? 'none' : 'auto'}
+                showSoftInputOnFocus={false}
               />
             </View>
 

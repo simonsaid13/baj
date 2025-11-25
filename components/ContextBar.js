@@ -56,8 +56,8 @@ const ASSISTANT_MIN = 220;        // Assistant min: InputBar + TabBar + spacing 
 const ASSISTANT_MAX = 312;        // Assistant max: ButtonBar (1 line × 72px + gap) + InputBar + TabBar + spacing (ASSISTANT_MIN + 92px)
 const HANDLE_HEIGHT = 40;         // Drag handle height (MUST match ResizableSplitView.js)
 
-// Keyboard mode: Top section should shrink to leave space for keyboard + 12px + input + 12px
-// This creates the structure: keyboard - 12px - input - 12px - top part of screen
+// Keyboard mode: Top section should shrink to ~45% of screen height
+// This makes the white page area smaller when typing, matching the Figma design
 const KEYBOARD_TOP_SECTION_HEIGHT = Math.round(SCREEN_HEIGHT * 0.45);
 const KEYBOARD_MODE_BOTTOM_HEIGHT = SCREEN_HEIGHT - KEYBOARD_TOP_SECTION_HEIGHT - HANDLE_HEIGHT;
 
@@ -68,6 +68,7 @@ export default function ContextBar({
   onTabChange, // Callback when user switches tabs
   onInputFocus, // Callback when InputBar is focused
   onInteractiveTextChange, // Callback to notify parent of interactive text changes
+  onExploreTabChange, // Callback when Explore sub-tabs change (For Me, Trending, Streams)
 }) {
   const insets = useSafeAreaInsets();
   
@@ -77,6 +78,13 @@ export default function ContextBar({
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [animatedTabsActiveIndex, setAnimatedTabsActiveIndex] = useState(0);
   const [animatedTabsHeight, setAnimatedTabsHeight] = useState(0);
+
+  // Notify parent when AnimatedTabs index changes
+  useEffect(() => {
+    if (onExploreTabChange && currentTab === 'Explore') {
+      onExploreTabChange(animatedTabsActiveIndex);
+    }
+  }, [animatedTabsActiveIndex, currentTab, onExploreTabChange]);
   
   // Animated keyboard height for smooth InputBar positioning
   const keyboardHeightAnimated = useSharedValue(0);
@@ -203,22 +211,21 @@ export default function ContextBar({
   }, [bottomHeightSharedValue, onHeightChange, keyboardHeightAnimated]);
   
   // Animated style for InputBar when keyboard is open
-  // Bottom padding = keyboard height + 12px from bottom of screen
-  // Structure: keyboard - 12px - input - 12px - top part of screen
+  // Bottom padding = keyboard height + 20px from bottom of screen
   const inputBarKeyboardStyle = useAnimatedStyle(() => {
     'worklet';
     const kbHeight = keyboardHeightAnimated.value;
-
+    
     if (kbHeight > 0) {
       return {
         position: 'absolute',
-        bottom: kbHeight + 12,
+        bottom: kbHeight + 20,
         left: 0,
         right: 0,
         zIndex: 10,
       };
     }
-
+    
     return {};
   });
 

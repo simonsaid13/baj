@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -7,7 +7,20 @@ import ResizableSplitView from '../components/ResizableSplitView';
 import ContextBar from '../components/ContextBar';
 import { Colors, BorderRadius, Spacing } from '../constants/tokens';
 
-import ExploreContent from '../components/ExploreContent';
+import ForMeContent from '../components/ForMeContent';
+import TrendingContent from '../components/TrendingContent';
+import LivestreamsContent from '../components/LivestreamsContent';
+import ServicesContent from '../components/ServicesContent';
+import PayContent from '../components/PayContent';
+import WorldsContent from '../components/WorldsContent';
+import AssistantContent from '../components/AssistantContent';
+
+// Import detail screens for inline rendering
+import CardDetailScreen from './CardDetailScreen';
+import LoanDetailScreen from './LoanDetailScreen';
+import ProductDetailScreen from './ProductDetailScreen';
+import TransactionDetailScreen from './TransactionDetailScreen';
+import ServiceDetailScreen from './ServiceDetailScreen';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 // Bottom container heights to match Figma designs
@@ -29,17 +42,15 @@ export default function ExploreScreen({ navigation }) {
   const [bottomHeight, setBottomHeight] = React.useState(EXPLORE_MIN);
   const [externalBottomHeight, setExternalBottomHeight] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('Explore');
+  const [exploreActiveIndex, setExploreActiveIndex] = React.useState(0);
   const prevHeightRef = React.useRef(EXPLORE_MIN);
   
-  // Handle Design System button press
-  const handleDesignSystemPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (navigation) {
-      navigation.navigate('DesignSystem');
-    }
-  }, [navigation]);
-  
   const [interactiveText, setInteractiveText] = React.useState('');
+  
+  // Detail view state
+  const [currentView, setCurrentView] = React.useState('main'); // 'main' or 'detail'
+  const [detailType, setDetailType] = React.useState(null); // 'card', 'loan', 'product', 'transaction', 'service'
+  const [detailParams, setDetailParams] = React.useState(null);
 
   const handleStateChange = useCallback((newBottomHeight) => {
     const prevHeight = prevHeightRef.current;
@@ -94,19 +105,71 @@ export default function ExploreScreen({ navigation }) {
     prevHeightRef.current = newBottomHeight;
   }, [bottomHeightSharedValue]);
 
+  // Detail view navigation callbacks - defined before renderContent so they're available
+  const showDetail = useCallback((type, params) => {
+    console.log('[ExploreScreen] showDetail called:', type, params);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDetailType(type);
+    setDetailParams(params);
+    setCurrentView('detail');
+  }, []);
+
+  const hideDetail = useCallback(() => {
+    console.log('[ExploreScreen] hideDetail called');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCurrentView('main');
+    setDetailType(null);
+    setDetailParams(null);
+  }, []);
+
+  // Render detail view or main content - memoized to ensure latest callbacks
+  const renderContent = useMemo(() => {
+    console.log('[ExploreScreen] renderContent:', { currentView, detailType, hasParams: !!detailParams });
+    
+    if (currentView === 'detail' && detailType && detailParams) {
+      // Render detail view inline with wrapper to handle layout
+      const detailProps = {
+        route: { params: detailParams },
+        navigation: { goBack: hideDetail }
+      };
+
+      console.log('[ExploreScreen] Rendering detail screen:', detailType);
+
+      // Wrap in a View instead of relying on SafeAreaView from detail screens
+      return (
+        <View style={styles.detailWrapper}>
+          {detailType === 'card' && <CardDetailScreen {...detailProps} />}
+          {detailType === 'loan' && <LoanDetailScreen {...detailProps} />}
+          {detailType === 'product' && <ProductDetailScreen {...detailProps} />}
+          {detailType === 'transaction' && <TransactionDetailScreen {...detailProps} />}
+          {detailType === 'service' && <ServiceDetailScreen {...detailProps} />}
+        </View>
+      );
+    }
+
+    // Render main content based on active tab
+    if (activeTab === 'Explore') {
+      if (exploreActiveIndex === 0) return <ForMeContent onShowDetail={showDetail} />;
+      if (exploreActiveIndex === 1) return <TrendingContent onShowDetail={showDetail} />;
+      if (exploreActiveIndex === 2) return <LivestreamsContent onShowDetail={showDetail} />;
+    } else if (activeTab === 'Services') {
+      return <ServicesContent onShowDetail={showDetail} />;
+    } else if (activeTab === 'Pay') {
+      return <PayContent onShowDetail={showDetail} />;
+    } else if (activeTab === 'Worlds') {
+      return <WorldsContent onShowDetail={showDetail} />;
+    } else if (activeTab === 'Assistant') {
+      return <AssistantContent onShowDetail={showDetail} />;
+    }
+
+    return <View style={{flex: 1, backgroundColor: '#fff'}} />;
+  }, [currentView, detailType, detailParams, activeTab, exploreActiveIndex, showDetail, hideDetail]);
+
   const topSection = (
     <View style={styles.topSection}>
       <BlurView intensity={20} tint="light" style={styles.topSectionBlur}>
         <View style={styles.pageContainer}>
-          <ExploreContent />
-          {/* Floating Design System Button */}
-          <TouchableOpacity
-            style={styles.designSystemButton}
-            onPress={handleDesignSystemPress}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.designSystemButtonText}>DS</Text>
-          </TouchableOpacity>
+          {renderContent}
         </View>
       </BlurView>
     </View>
@@ -122,6 +185,11 @@ export default function ExploreScreen({ navigation }) {
     const previousTab = activeTab;
 
     console.log('Tab change from', previousTab, 'to', tabName);
+
+    // Reset to main view when switching tabs
+    setCurrentView('main');
+    setDetailType(null);
+    setDetailParams(null);
 
     // Always switch to MIN state for the new tab, regardless of current state
     // This ensures consistent behavior - new tabs always start minimized
@@ -157,6 +225,14 @@ export default function ExploreScreen({ navigation }) {
   const handleInteractiveTextChange = useCallback((text) => {
     setInteractiveText(text);
   }, []);
+  
+  const handleExploreTabChange = useCallback((index) => {
+    // Reset to main view when switching explore sub-tabs
+    setCurrentView('main');
+    setDetailType(null);
+    setDetailParams(null);
+    setExploreActiveIndex(index);
+  }, []);
 
   const bottomSection = (
     <ContextBar 
@@ -165,6 +241,7 @@ export default function ExploreScreen({ navigation }) {
       onHeightChange={handleHeightChange}
       onTabChange={handleTabChange}
       onInteractiveTextChange={handleInteractiveTextChange}
+      onExploreTabChange={handleExploreTabChange}
     />
   );
 
@@ -198,29 +275,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.backgroundWhite,
     position: 'relative',
   },
-  designSystemButton: {
-    position: 'absolute',
-    top: 60,
-    right: Spacing.xxl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  designSystemButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.black,
+  detailWrapper: {
+    flex: 1,
+    backgroundColor: Colors.backgroundWhite,
   },
 });
 
